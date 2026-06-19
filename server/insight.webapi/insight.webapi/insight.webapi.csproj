@@ -10,4 +10,43 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Agents\Antigravity\agents.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Agents\Antigravity\agents\workflows\create-blogpost.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Agents\Antigravity\agents\workflows\skills\architect\SKILL.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Agents\Antigravity\agents\workflows\skills\dotnet-evangelist\output-artifact.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Agents\Antigravity\agents\workflows\skills\dotnet-evangelist\SKILL.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Agents\Antigravity\agents\workflows\skills\originality-check\SKILL.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Agents\Antigravity\agents\workflows\skills\outline\output-artifact.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Agents\Antigravity\agents\workflows\skills\outline\SKILL.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Agents\Antigravity\agents\workflows\skills\research\SKILL.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Agents\Antigravity\agents\workflows\skills\seo\SKILLS.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Agents\Antigravity\agents\workflows\skills\writer\draft.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Agents\Antigravity\agents\workflows\skills\writer\SKILL.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
