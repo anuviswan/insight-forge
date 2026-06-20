@@ -19,9 +19,14 @@ namespace insight.webapi
             // Antigravity HttpClient and service registrations
             builder.Services.AddHttpClient<IAntigravityApiClient, AntigravityApiClient>(client =>
             {
-                var baseUrl = builder.Configuration["Antigravity:BaseUrl"] ?? "https://api.antigravity.dev/";
+                var baseUrl = builder.Configuration["Antigravity:BaseUrl"] ?? "https://generativelanguage.googleapis.com/v1beta/";
                 client.BaseAddress = new Uri(baseUrl);
             });
+
+            // Use built-in OpenAPI provider (Microsoft.AspNetCore.OpenApi)
+            // Do not register Swashbuckle when using the built-in OpenAPI to avoid type conflicts.
+
+            // Use built-in OpenAPI mapping (AddOpenApi/MapOpenApi) for minimal OpenAPI support
 
             builder.Services.AddScoped<IAgentMetadataProvider, FileAgentMetadataProvider>();
             builder.Services.AddScoped<IAntigravityAgent, AntigravityAgent>();
@@ -30,10 +35,10 @@ namespace insight.webapi
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.MapOpenApi();
-            }
+            // Map OpenAPI endpoints (Swagger/OpenAPI) and enable Swagger UI
+            // Map built-in OpenAPI endpoints. Use the built-in document at /openapi.
+            app.MapOpenApi();
+            // If you want a UI, add a Swagger UI package or host your own UI that points to /openapi.
 
             app.UseHttpsRedirection();
             app.UseAuthorization();

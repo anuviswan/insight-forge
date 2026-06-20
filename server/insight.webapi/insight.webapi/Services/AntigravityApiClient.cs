@@ -34,7 +34,7 @@ namespace insight.webapi.Services
             HttpResponseMessage resp;
             try
             {
-                resp = await _http.PostAsJsonAsync("v1/agents/run", payload, cancellationToken);
+                resp = await _http.PostAsJsonAsync("interactions", payload, cancellationToken);
             }
             catch (Exception ex)
             {
