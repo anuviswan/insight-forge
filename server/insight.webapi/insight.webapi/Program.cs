@@ -1,34 +1,50 @@
+using Insight.Services.Ai.Gemini.AgentServices;
+using Insight.Services.Ai.Gemini.Interfaces;
+using Insight.Services.Ai.Gemini.Types;
+using Insight.Services.Interfaces.Ai;
+using Insight.Services.Interfaces.Core;
+using Insight.WebApi.Services;
 
-namespace insight.webapi
+namespace Insight.WebApi;
+
+public class Program
 {
-    public class Program
+    public static void Main(string[] args)
     {
-        public static void Main(string[] args)
+        var builder = WebApplication.CreateBuilder(args);
+
+        // Add services to the container.
+        builder.Services.AddControllers();
+        // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+        builder.Services.AddOpenApi();
+
+        // Antigravity HttpClient and service registrations
+        builder.Services.AddHttpClient<IAntigravityApiClient, AntigravityApiClient>(client =>
         {
-            var builder = WebApplication.CreateBuilder(args);
+            var baseUrl = builder.Configuration["Antigravity:BaseUrl"] ?? "https://generativelanguage.googleapis.com/v1beta/";
+            client.BaseAddress = new Uri(baseUrl);
+        });
 
-            // Add services to the container.
+        // Use built-in OpenAPI provider (Microsoft.AspNetCore.OpenApi)
+        // Do not register Swashbuckle when using the built-in OpenAPI to avoid type conflicts.
 
-            builder.Services.AddControllers();
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-            builder.Services.AddOpenApi();
+        // Use built-in OpenAPI mapping (AddOpenApi/MapOpenApi) for minimal OpenAPI support
 
-            var app = builder.Build();
+        builder.Services.AddScoped<IAgentMetadataProvider<AgentDefinitionDto>, FileAgentMetadataProvider>();
+        builder.Services.AddScoped<IAgent, AntigravityAgent>();
+        builder.Services.AddScoped<IBlogService, BlogService>();
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.MapOpenApi();
-            }
+        var app = builder.Build();
 
-            app.UseHttpsRedirection();
+        // Configure the HTTP request pipeline.
+        // Map OpenAPI endpoints (Swagger/OpenAPI) and enable Swagger UI
+        // Map built-in OpenAPI endpoints. Use the built-in document at /openapi.
+        app.MapOpenApi();
+        // If you want a UI, add a Swagger UI package or host your own UI that points to /openapi.
 
-            app.UseAuthorization();
-
-
-            app.MapControllers();
-
-            app.Run();
-        }
+        app.UseHttpsRedirection();
+        app.UseAuthorization();
+        app.MapControllers();
+        app.Run();
     }
 }
