@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -6,10 +6,17 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>1591</NoWarn>
+    <RootNamespace>Insight.WebApi</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\insight.services\insight.services.ai.gemini\insight.services.ai.gemini.csproj" />
+    <ProjectReference Include="..\insight.services\insight.services.core\insight.services.core.csproj" />
+    <ProjectReference Include="..\insight.services\insight.services.interfaces\insight.services.interfaces.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -49,6 +56,10 @@
     <None Update="Agents\Antigravity\agents\workflows\skills\writer\SKILL.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Services\" />
   </ItemGroup>
 
 </Project>

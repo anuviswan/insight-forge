@@ -1,7 +1,6 @@
-namespace insight.webapi.Models
+namespace Insight.WebApi.Models;
+
+public class CreateBlogRequest
 {
-    public class CreateBlogRequest
-    {
-        public string Topic { get; set; } = string.Empty;
-    }
+    public string Topic { get; set; } = string.Empty;
 }

@@ -1,27 +1,21 @@
-using System.Threading;
-using System.Threading.Tasks;
+using Insight.Services.Interfaces.Core;
+using Insight.WebApi.Models;
+using Insight.WebApi.Services;
 using Microsoft.AspNetCore.Mvc;
-using insight.webapi.Models;
-using insight.webapi.Services;
 
-namespace insight.webapi.Controllers
+namespace insight.webapi.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class BloggerController(IBlogService blogService) : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class BloggerController : ControllerBase
+    [HttpPost("CreateBlogEntry")]
+    public async Task<IActionResult> CreateBlogEntry([FromBody] CreateBlogRequest request, CancellationToken cancellationToken)
     {
-        private readonly IBlogService _blogService;
+        if (request == null || string.IsNullOrWhiteSpace(request.Topic))
+            return BadRequest("Topic is required.");
 
-        public BloggerController(IBlogService blogService) => _blogService = blogService;
-
-        [HttpPost("CreateBlogEntry")]
-        public async Task<IActionResult> CreateBlogEntry([FromBody] CreateBlogRequest request, CancellationToken cancellationToken)
-        {
-            if (request == null || string.IsNullOrWhiteSpace(request.Topic))
-                return BadRequest("Topic is required.");
-
-            var content = await _blogService.CreateBlogEntryAsync(request.Topic, cancellationToken);
-            return Ok(new BlogEntryResponse { Content = content });
-        }
+        var content = await blogService.CreateBlogEntryAsync(request.Topic, cancellationToken);
+        return Ok(new BlogEntryResponse { Content = content });
     }
 }
