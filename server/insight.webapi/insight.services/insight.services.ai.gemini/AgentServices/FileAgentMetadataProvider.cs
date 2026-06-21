@@ -1,5 +1,6 @@
 using Insight.Services.Ai.Gemini.Types;
 using Insight.Services.Interfaces.Ai;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Insight.WebApi.Services;
@@ -9,7 +10,7 @@ public class FileAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
     private readonly string _agentRootFolder;
     private readonly ILogger<FileAgentMetadataProvider> _logger;
 
-    public FileAgentMetadataProvider(string agentFolder, ILogger<FileAgentMetadataProvider> logger)
+    public FileAgentMetadataProvider([FromKeyedServices("Gemini")]string agentFolder, ILogger<FileAgentMetadataProvider> logger)
     {
         _agentRootFolder = agentFolder;
         _logger = logger;
@@ -20,8 +21,8 @@ public class FileAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
         var root = Path.Combine(_agentRootFolder, agentFolder);
         var dto = new AgentDefinitionDto
         {
-            Workflows = new List<WorkflowDto>(),
-            Skills = new List<SkillDto>()
+            Workflows = [],
+            Skills = []
         };
 
         if (!Directory.Exists(root))
