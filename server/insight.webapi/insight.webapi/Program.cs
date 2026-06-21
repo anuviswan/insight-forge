@@ -30,7 +30,7 @@ public class Program
 
         // Use built-in OpenAPI mapping (AddOpenApi/MapOpenApi) for minimal OpenAPI support
 
-        builder.Services.AddScoped<IAgentMetadataProvider<AgentDefinitionDto>, FileAgentMetadataProvider>();
+        builder.Services.AddKeyedScoped<IAgentMetadataProvider<AgentDefinitionDto>, FileAgentMetadataProvider>("Gemini");
         builder.Services.AddScoped<IAgent, AntigravityAgent>();
         builder.Services.AddScoped<IBlogService, BlogService>();
 
