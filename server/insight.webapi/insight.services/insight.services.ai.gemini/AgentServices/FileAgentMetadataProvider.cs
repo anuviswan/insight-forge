@@ -1,8 +1,3 @@
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using Insight.Services.Ai.Gemini.Types;
 using Insight.Services.Interfaces.Ai;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Insight.WebApi.Services;
 
-public class FileAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionDto>
+public class FileAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionDto,SkillDto,WorkflowDto>
 {
     private readonly string _agentRootFolder;
     private readonly ILogger<FileAgentMetadataProvider> _logger;
@@ -19,6 +14,11 @@ public class FileAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
     {
         _agentRootFolder = agentFolder;
         _logger = logger;
+    }
+
+    public AgentDefinitionDto GetAgent(string agentName)
+    {
+        throw new NotImplementedException();
     }
 
     public async Task<AgentDefinitionDto> GetAgentDefinitionAsync(string agentFolder, CancellationToken cancellationToken = default)
@@ -80,5 +80,30 @@ public class FileAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
         }
 
         return dto;
+    }
+
+    public SkillDto GetSkill(string skillName)
+    {
+        throw new NotImplementedException();
+    }
+
+    public WorkflowDto GetWorkflow(string workflowName)
+    {
+        throw new NotImplementedException();
+    }
+
+    public IDictionary<string, AgentDefinitionDto> Load(string agentFolder)
+    {
+        throw new NotImplementedException();
+    }
+
+    IDictionary<string, SkillDto> ICanReadSkillDefinition<SkillDto>.Load(string skillFolder)
+    {
+        throw new NotImplementedException();
+    }
+
+    IDictionary<string, WorkflowDto> ICanReadWorkflowDefinition<WorkflowDto>.Load(string workflowFolder)
+    {
+        throw new NotImplementedException();
     }
 }

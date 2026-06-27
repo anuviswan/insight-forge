@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Insight.Services.Ai.Gemini.Types;
 
 public class AgentDefinitionDto
