@@ -1,0 +1,54 @@
+description: "Template for Initial Draft"
+structure:
+  title: "{{TITLE}}"
+  sections:
+    - Introduction:
+        brief_explain:
+          - What problem this solves
+          - Why it matters
+          - Who should care
+    - Understanding the Problem:
+        describe:
+          - Current challenges
+          - Common approaches
+          - Limitations
+    - The Solution:
+        explain:
+          - Key concepts
+          - Architecture overview
+          - Important terminology
+    - Implementation:
+        steps:
+          - Step 1: Explain the first step and include example code
+          - Step 2: Explain the next step and include example code
+    - Best Practices:
+        - Practice 1
+        - Practice 2
+        - Practice 3
+    - Common Pitfalls:
+        - Pitfall 1
+        - Pitfall 2
+    - Performance Considerations:
+        - Scalability
+        - Memory usage
+        - Execution speed
+        - Maintainability
+    - When To Use This Approach:
+        recommended:
+          - Scenario 1
+          - Scenario 2
+        avoid_when:
+          - Scenario 1
+          - Scenario 2
+    - Conclusion:
+        - Main takeaways
+        - Benefits
+        - Next steps
+    - FAQ:
+        - Question 1: Answer
+        - Question 2: Answer
+    - References:
+        - Source 1
+        - Source 2
+        - Source 3
+notes: "Use this template as a starting point for drafts."

@@ -1,0 +1,11 @@
+name: outline
+description: "Transform research findings into a logical article structure."
+purpose: "Transform research findings into a logical article structure."
+inputs:
+  - Research Findings
+responsibilities:
+  - "Identify the main message"
+  - "Create a compelling flow"
+  - "Organize concepts from simple to complex"
+  - "Ensure complete topic coverage"
+output_format: "Refer to output-artifact"

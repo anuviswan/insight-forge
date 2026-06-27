@@ -1,0 +1,67 @@
+description: "A multi-step workflow for research, draft, SEO-optimizze technical articles"
+title: "Technical Blogger"
+input:
+  - Topic
+steps:
+  - step: 1
+    title: "Research"
+    description: |
+      Do extensive research on the topic.
+      Ask questions if details are missing. NEVER ASSUME.
+    skills_required:
+      - research
+    input:
+      - Topic
+    output:
+      - Research Artifacts
+  - step: 2
+    title: "Domain Analysis"
+    description: "Provide expert domain analysis and feedback on the topic. If topic is .Net related, use skill dotnet-evangelist"
+    skills_required: []
+    input:
+      - Topic
+      - Research Artifacts
+    output:
+      - Domain Analysis Artifacts
+  - step: 3
+    title: "Create Outline"
+    description: "Create outline of the document"
+    skills_required:
+      - outline
+    input:
+      - Research Summary
+      - Domain Expertise
+    output:
+      - Article Outline
+  - step: 4
+    title: "Write Draft"
+    description: "Create initial draft of the document"
+    skills_required:
+      - writer
+    input:
+      - Outline
+    output:
+      - Draft Article
+  - step: 5
+    title: "SEO Optimization"
+    description: "SEO Optimize the article draft"
+    skills_required:
+      - seo
+    input:
+      - Draft Article
+    output:
+      - SEO Optimized Article
+  - step: 6
+    title: "Originality check"
+    description: "Review the article for originality and refine until satisfied"
+    skills_required:
+      - originality-check
+    process:
+      - "Review the Article until originality check succeeds"
+      - "Use review feedback for refining article"
+  - step: 7
+    title: "Final Output"
+    description: "Produce the final output"
+
+output_folders:
+  - ./output
