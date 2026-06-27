@@ -1,7 +1,3 @@
-using Insight.Services.Ai.Gemini.AgentServices;
-using Insight.Services.Ai.Gemini.Interfaces;
-using Insight.Services.Ai.Gemini.Types;
-using Insight.Services.Interfaces.Ai;
 using Insight.Services.Interfaces.Core;
 using Insight.WebApi.Services;
 
@@ -18,20 +14,12 @@ public class Program
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
 
-        // Antigravity HttpClient and service registrations
-        builder.Services.AddHttpClient<IAntigravityApiClient, AntigravityApiClient>(client =>
-        {
-            var baseUrl = builder.Configuration["Antigravity:BaseUrl"] ?? "https://generativelanguage.googleapis.com/v1beta/";
-            client.BaseAddress = new Uri(baseUrl);
-        });
-
-        // Use built-in OpenAPI provider (Microsoft.AspNetCore.OpenApi)
+                // Use built-in OpenAPI provider (Microsoft.AspNetCore.OpenApi)
         // Do not register Swashbuckle when using the built-in OpenAPI to avoid type conflicts.
 
         // Use built-in OpenAPI mapping (AddOpenApi/MapOpenApi) for minimal OpenAPI support
 
-        builder.Services.AddKeyedScoped<IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto>, FileAgentMetadataProvider>("Gemini");
-        builder.Services.AddScoped<IAgent, AntigravityAgent>();
+        RegisterModules(builder.Services, builder.Configuration);
         builder.Services.AddScoped<IBlogService, BlogService>();
 
         var app = builder.Build();
@@ -46,5 +34,20 @@ public class Program
         app.UseAuthorization();
         app.MapControllers();
         app.Run();
+    }
+
+    private static void RegisterModules(IServiceCollection services, IConfiguration configuration)
+    {
+        // Manually register module implementations (or use reflection if you want auto-discovery)
+        var modules = new IModule[]
+        {
+            new global::Insight.Services.Ai.Gemini.GeminiModule(),
+            // Add more modules here as needed
+        };
+
+        foreach (var module in modules)
+        {
+            module.RegisterServices(services, configuration);
+        }
     }
 }
