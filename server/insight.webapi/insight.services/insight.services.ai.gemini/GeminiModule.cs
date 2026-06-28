@@ -16,7 +16,7 @@ public class GeminiModule : IModule
 
     public void RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddHttpClient<IGeminiApiClient, AntigravityApiClient>(client =>
+        services.AddHttpClient<IGeminiApiClient, GeminiApiHttpClient>(client =>
         {
             var baseUrl = configuration["Antigravity:BaseUrl"] ?? "https://generativelanguage.googleapis.com/v1beta/";
             client.BaseAddress = new Uri(baseUrl);
@@ -28,6 +28,6 @@ public class GeminiModule : IModule
         // Register metadata providers and agent. Use YAML provider as the keyed default for Gemini.
         services.AddKeyedScoped<IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto>, YamlAgentMetadataProvider>(ModuleName);
         services.AddScoped<IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto>, MarkdownAgentMetadataProvider>();
-        services.AddScoped<IAgent, AntigravityAgent>();
+        services.AddScoped<IAgent, GeminiAgent>();
     }
 }

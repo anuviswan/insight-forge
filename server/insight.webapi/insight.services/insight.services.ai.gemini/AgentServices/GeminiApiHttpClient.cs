@@ -7,12 +7,12 @@ using System.Text.Json;
 
 namespace Insight.Services.Ai.Gemini.AgentServices;
 
-public class AntigravityApiClient : IGeminiApiClient
+public class GeminiApiHttpClient : IGeminiApiClient
 {
     private readonly HttpClient _http;
-    private readonly ILogger<AntigravityApiClient> _logger;
+    private readonly ILogger<GeminiApiHttpClient> _logger;
 
-    public AntigravityApiClient(HttpClient http, IConfiguration config, ILogger<AntigravityApiClient> logger)
+    public GeminiApiHttpClient(HttpClient http, IConfiguration config, ILogger<GeminiApiHttpClient> logger)
     {
         _http = http;
         _logger = logger;
