@@ -9,6 +9,16 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
     private const string AgentName = "Blog Writer Agent";
     private const string Workflow = "create-blogpost";
 
+    public Task<string> CheckIfAgentExists(string agentName, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<string> CreateAgent(string agentName, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
     public async Task<string> CreateBlogPostAsync(string topic, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(topic))
