@@ -2,7 +2,7 @@
 
 public interface ICanReadAgentDefinition<TAgentDefinition> where TAgentDefinition : class
 {
-    IDictionary<string, TAgentDefinition> Load(string agentFolder);
+    IDictionary<string, TAgentDefinition> LoadAgents();
     TAgentDefinition GetAgent(string agentName);
 }
 

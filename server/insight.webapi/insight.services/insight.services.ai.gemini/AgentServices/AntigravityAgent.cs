@@ -16,7 +16,7 @@ public class AntigravityAgent(IAntigravityApiClient apiClient, IAgentMetadataPro
 
         var input = topic.Trim();
 
-        var agentDef = await metadataProvider.GetAgentDefinitionAsync("Antigravity", cancellationToken);
+        var agentDef = metadataProvider.GetAgent("Antigravity");
 
         var result = await apiClient.RunAgentWorkflowAsync(AgentName, Workflow, input, agentDef, cancellationToken);
         return result ?? string.Empty;

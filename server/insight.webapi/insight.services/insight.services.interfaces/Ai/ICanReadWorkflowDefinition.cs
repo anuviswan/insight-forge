@@ -2,7 +2,7 @@
 
 public interface ICanReadWorkflowDefinition<TWorkflowDefinition> where TWorkflowDefinition : class
 {
-    IDictionary<string, TWorkflowDefinition> Load(string workflowFolder);
+    IDictionary<string, TWorkflowDefinition> LoadWorkflow();
     TWorkflowDefinition GetWorkflow(string workflowName);
 }
 

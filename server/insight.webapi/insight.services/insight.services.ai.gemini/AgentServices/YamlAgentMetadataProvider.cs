@@ -13,15 +13,64 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
     private readonly string _agentRootFolder;
     private readonly ILogger<YamlAgentMetadataProvider> _logger;
     private readonly IDeserializer _deserializer;
+    private IDictionary<string, SkillDto>? _skillsCache;
+    private IDictionary<string, WorkflowDto>? _workflowsCache;
 
     public YamlAgentMetadataProvider(IOptions<GeminiAgentOptions> options, ILogger<YamlAgentMetadataProvider> logger)
     {
-        _agentRootFolder = options?.Value?.AgentRootFolder ?? "agents";
+        _agentRootFolder = options?.Value?.AgentsDefinitionFile ?? "agents";
         _logger = logger;
         _deserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
             .IgnoreUnmatchedProperties()
             .Build();
+    }
+
+    private void PopulateSkillsAndWorkflows(AgentDefinitionDto dto)
+    {
+        // Lazy-load cached dictionaries if not already loaded
+        _skillsCache ??= LoadSkills();
+        _workflowsCache ??= LoadWorkflow();
+
+        // Populate Skills from names using the cached dictionary
+        if (dto.SkillsNames?.Any() == true)
+        {
+            dto.Skills = new List<SkillDto>();
+            foreach (var skillName in dto.SkillsNames)
+            {
+                if (_skillsCache.TryGetValue(skillName, out var skillDto))
+                {
+                    dto.Skills.Add(skillDto);
+                }
+                else
+                {
+                    _logger.LogWarning("Skill '{SkillName}' referenced but not found in definitions", skillName);
+                    dto.Skills.Add(new SkillDto { Name = skillName });
+                }
+            }
+        }
+
+        // Populate Workflows from names using the cached dictionary
+        if (dto.WorkflowsNames?.Any() == true)
+        {
+            dto.Workflows = new List<WorkflowDto>();
+            foreach (var workflowName in dto.WorkflowsNames)
+            {
+                if (_workflowsCache.TryGetValue(workflowName, out var workflowDto))
+                {
+                    dto.Workflows.Add(workflowDto);
+                }
+                else
+                {
+                    _logger.LogWarning("Workflow '{WorkflowName}' referenced but not found in definitions", workflowName);
+                    dto.Workflows.Add(new WorkflowDto { Name = workflowName });
+                }
+            }
+        }
+
+        // Ensure lists are initialized even if empty
+        dto.Skills ??= new List<SkillDto>();
+        dto.Workflows ??= new List<WorkflowDto>();
     }
 
     public AgentDefinitionDto GetAgent(string agentName)
@@ -44,7 +93,6 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
             return dto;
         }
 
-        // Require a single agents.yaml/yml file containing structured metadata
         var agentsYaml = Path.Combine(root, "agents.yaml");
         var agentsYml = Path.Combine(root, "agents.yml");
 
@@ -60,15 +108,16 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
 
         try
         {
-            // Map YAML into AgentDefinitionDto (structured)
             var mapped = _deserializer.Deserialize<AgentDefinitionDto>(yamlText!);
             if (mapped != null)
             {
-                // preserve raw content too
                 mapped.Content = yamlText!;
-                // ensure lists are not null
                 mapped.Workflows ??= new List<WorkflowDto>();
                 mapped.Skills ??= new List<SkillDto>();
+
+                // Populate skills and workflows from cached dictionaries based on names
+                PopulateSkillsAndWorkflows(mapped);
+
                 return mapped;
             }
         }
@@ -82,78 +131,32 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
 
     public SkillDto GetSkill(string skillName)
     {
-        // Search all agents for the skill (YAML only)
-        if (!Directory.Exists(_agentRootFolder)) return new SkillDto { Name = skillName };
+        // Use LoadSkills to get all skills with full definitions
+        var skills = _skillsCache ??= LoadSkills();
+        if (skills.TryGetValue(skillName, out var skill))
+            return skill;
 
-        foreach (var agentDir in Directory.EnumerateDirectories(_agentRootFolder))
-        {
-            // Check for a structured YAML agent file
-            var agentsYaml = Path.Combine(agentDir, "agents.yaml");
-            var agentsYml = Path.Combine(agentDir, "agents.yml");
-            string? yamlText = null;
-            if (File.Exists(agentsYaml)) yamlText = File.ReadAllText(agentsYaml);
-            else if (File.Exists(agentsYml)) yamlText = File.ReadAllText(agentsYml);
-
-            if (string.IsNullOrWhiteSpace(yamlText)) continue;
-
-            try
-            {
-                var mapped = _deserializer.Deserialize<AgentDefinitionDto>(yamlText);
-                if (mapped?.Skills != null)
-                {
-                    var s = mapped.Skills.FirstOrDefault(sk => string.Equals(sk.Name, skillName, StringComparison.OrdinalIgnoreCase));
-                    if (s != null) return s;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug(ex, "YAML parse failed when searching for skill {Skill} in agent {Dir}", skillName, agentDir);
-            }
-        }
-
+        _logger.LogWarning("Skill '{SkillName}' not found in definitions", skillName);
         return new SkillDto { Name = skillName };
     }
 
     public WorkflowDto GetWorkflow(string workflowName)
     {
-        // Search all agents for the workflow (YAML only)
-        if (!Directory.Exists(_agentRootFolder)) return new WorkflowDto { Name = workflowName };
+        // Use LoadWorkflow to get all workflows with full definitions
+        var workflows = _workflowsCache ??= LoadWorkflow();
+        if (workflows.TryGetValue(workflowName, out var workflow))
+            return workflow;
 
-        foreach (var agentDir in Directory.EnumerateDirectories(_agentRootFolder))
-        {
-            var agentsYaml = Path.Combine(agentDir, "agents.yaml");
-            var agentsYml = Path.Combine(agentDir, "agents.yml");
-            string? yamlText = null;
-            if (File.Exists(agentsYaml)) yamlText = File.ReadAllText(agentsYaml);
-            else if (File.Exists(agentsYml)) yamlText = File.ReadAllText(agentsYml);
-
-            if (string.IsNullOrWhiteSpace(yamlText)) continue;
-
-            try
-            {
-                var mapped = _deserializer.Deserialize<AgentDefinitionDto>(yamlText);
-                if (mapped?.Workflows != null)
-                {
-                    var w = mapped.Workflows.FirstOrDefault(wf => string.Equals(wf.Name, workflowName, StringComparison.OrdinalIgnoreCase));
-                    if (w != null) return w;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug(ex, "YAML parse failed when searching for workflow {Workflow} in agent {Dir}", workflowName, agentDir);
-            }
-        }
-
+        _logger.LogWarning("Workflow '{WorkflowName}' not found in definitions", workflowName);
         return new WorkflowDto { Name = workflowName };
     }
 
-    public IDictionary<string, AgentDefinitionDto> Load(string agentFolder)
+    public IDictionary<string, AgentDefinitionDto> LoadAgents()
     {
         var result = new Dictionary<string, AgentDefinitionDto>(StringComparer.OrdinalIgnoreCase);
-        var folder = Path.Combine(_agentRootFolder, agentFolder);
-        if (!Directory.Exists(folder)) return result;
+        if (!Directory.Exists(_agentRootFolder)) return result;
 
-        foreach (var sub in Directory.EnumerateDirectories(folder))
+        foreach (var sub in Directory.EnumerateDirectories(_agentRootFolder))
         {
             var name = Path.GetFileName(sub);
             try
@@ -170,37 +173,71 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
         return result;
     }
 
-    IDictionary<string, SkillDto> ICanReadSkillDefinition<SkillDto>.Load(string skillFolder)
+    public IDictionary<string, SkillDto> LoadSkills()
     {
         var result = new Dictionary<string, SkillDto>(StringComparer.OrdinalIgnoreCase);
-        var folder = Path.Combine(_agentRootFolder, skillFolder);
-        if (!Directory.Exists(folder)) return result;
+        if (!Directory.Exists(_agentRootFolder)) return result;
 
-        var files = Directory.EnumerateFiles(folder)
-            .Where(f => f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase));
-
-        foreach (var f in files)
+        foreach (var agentDir in Directory.EnumerateDirectories(_agentRootFolder))
         {
-            var name = Path.GetFileNameWithoutExtension(f);
-            result[name] = new SkillDto { Name = name, Content = File.ReadAllText(f) };
+            var agentsYaml = Path.Combine(agentDir, "agents.yaml");
+            var agentsYml = Path.Combine(agentDir, "agents.yml");
+            string? yamlText = null;
+            if (File.Exists(agentsYaml)) yamlText = File.ReadAllText(agentsYaml);
+            else if (File.Exists(agentsYml)) yamlText = File.ReadAllText(agentsYml);
+
+            if (string.IsNullOrWhiteSpace(yamlText)) continue;
+
+            try
+            {
+                var mapped = _deserializer.Deserialize<AgentDefinitionDto>(yamlText);
+                if (mapped?.Skills != null)
+                {
+                    foreach (var s in mapped.Skills)
+                    {
+                        if (!result.ContainsKey(s.Name)) result[s.Name] = s;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "YAML parse failed when loading skills from agent {Dir}", agentDir);
+            }
         }
 
         return result;
     }
 
-    IDictionary<string, WorkflowDto> ICanReadWorkflowDefinition<WorkflowDto>.Load(string workflowFolder)
+    public IDictionary<string, WorkflowDto> LoadWorkflow()
     {
         var result = new Dictionary<string, WorkflowDto>(StringComparer.OrdinalIgnoreCase);
-        var folder = Path.Combine(_agentRootFolder, workflowFolder);
-        if (!Directory.Exists(folder)) return result;
+        if (!Directory.Exists(_agentRootFolder)) return result;
 
-        var files = Directory.EnumerateFiles(folder)
-            .Where(f => f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase));
-
-        foreach (var f in files)
+        foreach (var agentDir in Directory.EnumerateDirectories(_agentRootFolder))
         {
-            var name = Path.GetFileNameWithoutExtension(f);
-            result[name] = new WorkflowDto { Name = name, Content = File.ReadAllText(f) };
+            var agentsYaml = Path.Combine(agentDir, "agents.yaml");
+            var agentsYml = Path.Combine(agentDir, "agents.yml");
+            string? yamlText = null;
+            if (File.Exists(agentsYaml)) yamlText = File.ReadAllText(agentsYaml);
+            else if (File.Exists(agentsYml)) yamlText = File.ReadAllText(agentsYml);
+
+            if (string.IsNullOrWhiteSpace(yamlText)) continue;
+
+            try
+            {
+                var mapped = _deserializer.Deserialize<AgentDefinitionDto>(yamlText);
+                if (mapped?.Workflows != null)
+                {
+                    foreach (var w in mapped.Workflows)
+                    {
+                        if (!result.ContainsKey(w.Name)) result[w.Name] = w;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "YAML parse failed when loading workflows from agent {Dir}", agentDir);
+            }
         }
 
         return result;

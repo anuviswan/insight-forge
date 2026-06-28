@@ -8,5 +8,4 @@ public interface IAgentMetadataProvider<TAgentDefinition,TSkillDefinition, TWork
     where TSkillDefinition : class
     where TWorkflowDefinition : class
 {
-    Task<TAgentDefinition> GetAgentDefinitionAsync(string agentFolder, CancellationToken cancellationToken = default);
 }

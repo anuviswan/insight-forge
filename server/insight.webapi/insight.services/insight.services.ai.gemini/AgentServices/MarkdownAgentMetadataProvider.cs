@@ -10,11 +10,24 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
 {
     private readonly string _agentRootFolder;
     private readonly ILogger<MarkdownAgentMetadataProvider> _logger;
+    private IDictionary<string, SkillDto>? _skillsCache;
+    private IDictionary<string, WorkflowDto>? _workflowsCache;
 
     public MarkdownAgentMetadataProvider(IOptions<GeminiAgentOptions> options, ILogger<MarkdownAgentMetadataProvider> logger)
     {
-        _agentRootFolder = options?.Value?.AgentRootFolder ?? "agents";
+        _agentRootFolder = options?.Value?.AgentsDefinitionFile ?? "agents";
         _logger = logger;
+    }
+
+    private void PopulateSkillsAndWorkflows(AgentDefinitionDto dto)
+    {
+        // Lazy-load cached dictionaries if not already loaded
+        _skillsCache ??= LoadSkills();
+        _workflowsCache ??= LoadWorkflow();
+
+        // Ensure lists are initialized
+        dto.Skills ??= new List<SkillDto>();
+        dto.Workflows ??= new List<WorkflowDto>();
     }
 
     public AgentDefinitionDto GetAgent(string agentName)
@@ -80,60 +93,40 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
             }
         }
 
+        // Populate skills and workflows using helper
+        PopulateSkillsAndWorkflows(dto);
+
         return dto;
     }
 
     public SkillDto GetSkill(string skillName)
     {
-        // Search all agents for the skill
-        if (!Directory.Exists(_agentRootFolder)) return new SkillDto { Name = skillName };
+        // Use LoadSkills to get all skills with full definitions
+        var skills = _skillsCache ??= LoadSkills();
+        if (skills.TryGetValue(skillName, out var skill))
+            return skill;
 
-        foreach (var agentDir in Directory.EnumerateDirectories(_agentRootFolder))
-        {
-            var skillsDir = Path.Combine(agentDir, "agents", "skills");
-            if (!Directory.Exists(skillsDir)) continue;
-
-            var match = Directory.EnumerateFiles(skillsDir)
-                .FirstOrDefault(f => string.Equals(Path.GetFileNameWithoutExtension(f), skillName, StringComparison.OrdinalIgnoreCase));
-
-            if (match != null)
-            {
-                return new SkillDto { Name = skillName, Content = File.ReadAllText(match) };
-            }
-        }
-
+        _logger.LogWarning("Skill '{SkillName}' not found in definitions", skillName);
         return new SkillDto { Name = skillName };
     }
 
     public WorkflowDto GetWorkflow(string workflowName)
     {
-        // Search all agents for the workflow
-        if (!Directory.Exists(_agentRootFolder)) return new WorkflowDto { Name = workflowName };
+        // Use LoadWorkflow to get all workflows with full definitions
+        var workflows = _workflowsCache ??= LoadWorkflow();
+        if (workflows.TryGetValue(workflowName, out var workflow))
+            return workflow;
 
-        foreach (var agentDir in Directory.EnumerateDirectories(_agentRootFolder))
-        {
-            var wfDir = Path.Combine(agentDir, "agents", "workflows");
-            if (!Directory.Exists(wfDir)) continue;
-
-            var match = Directory.EnumerateFiles(wfDir)
-                .FirstOrDefault(f => string.Equals(Path.GetFileNameWithoutExtension(f), workflowName, StringComparison.OrdinalIgnoreCase));
-
-            if (match != null)
-            {
-                return new WorkflowDto { Name = workflowName, Content = File.ReadAllText(match) };
-            }
-        }
-
+        _logger.LogWarning("Workflow '{WorkflowName}' not found in definitions", workflowName);
         return new WorkflowDto { Name = workflowName };
     }
 
-    public IDictionary<string, AgentDefinitionDto> Load(string agentFolder)
+    public IDictionary<string, AgentDefinitionDto> LoadAgents()
     {
         var result = new Dictionary<string, AgentDefinitionDto>(StringComparer.OrdinalIgnoreCase);
-        var folder = Path.Combine(_agentRootFolder, agentFolder);
-        if (!Directory.Exists(folder)) return result;
+        if (!Directory.Exists(_agentRootFolder)) return result;
 
-        foreach (var sub in Directory.EnumerateDirectories(folder))
+        foreach (var sub in Directory.EnumerateDirectories(_agentRootFolder))
         {
             var name = Path.GetFileName(sub);
             try
@@ -150,13 +143,15 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
         return result;
     }
 
-    IDictionary<string, SkillDto> ICanReadSkillDefinition<SkillDto>.Load(string skillFolder)
+    public IDictionary<string, SkillDto> LoadSkills()
     {
         var result = new Dictionary<string, SkillDto>(StringComparer.OrdinalIgnoreCase);
-        var folder = Path.Combine(_agentRootFolder, skillFolder);
-        if (!Directory.Exists(folder)) return result;
+        if (!Directory.Exists(_agentRootFolder)) return result;
 
-        var files = Directory.EnumerateFiles(folder)
+        var skillsDir = Path.Combine(_agentRootFolder, "agents", "skills");
+        if (!Directory.Exists(skillsDir)) return result;
+
+        var files = Directory.EnumerateFiles(skillsDir)
             .Where(f => f.EndsWith(".md", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase));
 
         foreach (var f in files)
@@ -168,13 +163,15 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
         return result;
     }
 
-    IDictionary<string, WorkflowDto> ICanReadWorkflowDefinition<WorkflowDto>.Load(string workflowFolder)
+    public IDictionary<string, WorkflowDto> LoadWorkflow()
     {
         var result = new Dictionary<string, WorkflowDto>(StringComparer.OrdinalIgnoreCase);
-        var folder = Path.Combine(_agentRootFolder, workflowFolder);
-        if (!Directory.Exists(folder)) return result;
+        if (!Directory.Exists(_agentRootFolder)) return result;
 
-        var files = Directory.EnumerateFiles(folder)
+        var workflowsDir = Path.Combine(_agentRootFolder, "agents", "workflows");
+        if (!Directory.Exists(workflowsDir)) return result;
+
+        var files = Directory.EnumerateFiles(workflowsDir)
             .Where(f => f.EndsWith(".md", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase));
 
         foreach (var f in files)
