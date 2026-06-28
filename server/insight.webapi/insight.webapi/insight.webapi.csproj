@@ -20,40 +20,40 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Agents\Antigravity\agents.md">
+    <None Update="Agents\Gemini\agents.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Agents\Antigravity\agents\workflows\create-blogpost.md">
+    <None Update="Agents\Gemini\agents\workflows\create-blogpost.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Agents\Antigravity\agents\workflows\skills\architect\SKILL.md">
+    <None Update="Agents\Gemini\agents\workflows\skills\architect\SKILL.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Agents\Antigravity\agents\workflows\skills\dotnet-evangelist\output-artifact.md">
+    <None Update="Agents\Gemini\agents\workflows\skills\dotnet-evangelist\output-artifact.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Agents\Antigravity\agents\workflows\skills\dotnet-evangelist\SKILL.md">
+    <None Update="Agents\Gemini\agents\workflows\skills\dotnet-evangelist\SKILL.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Agents\Antigravity\agents\workflows\skills\originality-check\SKILL.md">
+    <None Update="Agents\Gemini\agents\workflows\skills\originality-check\SKILL.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Agents\Antigravity\agents\workflows\skills\outline\output-artifact.md">
+    <None Update="Agents\Gemini\agents\workflows\skills\outline\output-artifact.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Agents\Antigravity\agents\workflows\skills\outline\SKILL.md">
+    <None Update="Agents\Gemini\agents\workflows\skills\outline\SKILL.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Agents\Antigravity\agents\workflows\skills\research\SKILL.md">
+    <None Update="Agents\Gemini\agents\workflows\skills\research\SKILL.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Agents\Antigravity\agents\workflows\skills\seo\SKILLS.md">
+    <None Update="Agents\Gemini\agents\workflows\skills\seo\SKILLS.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Agents\Antigravity\agents\workflows\skills\writer\draft.md">
+    <None Update="Agents\Gemini\agents\workflows\skills\writer\draft.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Agents\Antigravity\agents\workflows\skills\writer\SKILL.md">
+    <None Update="Agents\Gemini\agents\workflows\skills\writer\SKILL.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
