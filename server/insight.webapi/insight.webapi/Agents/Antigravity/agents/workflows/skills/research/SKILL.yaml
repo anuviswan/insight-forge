@@ -1,0 +1,32 @@
+name: research
+description: "Conduct comprehensive research and generate a structured research artifact for downstream blog-writing skills."
+purpose: "Conduct comprehensive research and generate an accurate and structured research artifact for downstream blog-writing skills."
+when_to_use:
+  - "Researching a new technical topic"
+  - "Validating claims"
+  - "Collecting references and sources"
+  - "Comparing technologies, frameworks, or approaches"
+  - "Finding best practices"
+  - "Understanding architecture and patterns"
+  - "Gathering industrial standards, statistics, benchmarks and performance data"
+instructions:
+  - "Clarify requirements. If requirements are not clear, ask questions. NEVER ASSUME"
+  - "Primary Sources: Official documentation, Academic Papers, Specifications and standards"
+  - "Secondary Sources: Engineering Blogs from recognized companies, Conference Talks"
+  - "Tertiary Sources: Engineering blogs from reputed domain experts, Community Contents (Stackoverflow, Microsoft Forums)"
+  - "Verify important claims"
+  - "Never present assumptions as facts"
+  - "For evolving technologies, prefer published information within last 24 months"
+  - "Check for deprecations and breaking changes"
+  - "Check current recommendations"
+process:
+  - "Clarify - Understand the research objective clearly, ASK questions when required. NEVER ASSUME"
+  - "Collect Information - Search broadly and then refine"
+  - "Validate Information - Validate facts across multiple sources"
+  - "Organize Findings - Organize the findings"
+output:
+  - Key Findings
+  - Best Practices and recommendations
+  - Code Samples
+  - Common Pitfalls
+  - References

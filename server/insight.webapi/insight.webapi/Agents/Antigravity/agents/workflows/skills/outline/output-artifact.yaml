@@ -1,0 +1,11 @@
+description: "Template for Outline"
+structure:
+  - Title
+  - Introduction
+  - Section 1
+  - Section 2
+  - Best Practices
+  - Conclusion
+  - FAQ
+  - References
+notes: "and so on.."

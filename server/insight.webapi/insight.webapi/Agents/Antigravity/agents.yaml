@@ -1,0 +1,20 @@
+description: Document defines the available Agents and workflows in the system
+
+agents:
+  - name: "Blog Writer Agent"
+    role: "Research a given topic and produce a technical article using approved templates"
+    responsibilities:
+      - "Research topics using web resources"
+      - "Ask questions when needed. DO NOT ASSUME"
+      - "Write blog article using approved templates"
+      - "Use Mermaid diagrams when required"
+      - "Write code snippets when required"
+      - "Ensure code snippets are compilable"
+      - "Use SEO keywords when required"
+      - "Verify factual accuracy of information"
+
+workflows:
+  - create-blogpost
+
+output_folders:
+  - "./output"

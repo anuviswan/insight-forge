@@ -1,0 +1,29 @@
+name: originality-check
+description: "Ensure content is original, properly attributed, and written in the author's own voice. Identify potential originality risks and improve content uniqueness. This skill does not perform true plagiarism detection."
+when_to_use:
+  - "A blog article has been completed"
+  - "Content was created from research notes"
+  - "Large amounts of source material were referenced"
+  - "AI-generated drafts need human-style refinement"
+  - "Content will be published publicly"
+review_criteria:
+  - Source Dependency: Identify sections that closely mirror source structure or wording and flag them
+  - Excessive Quoting: Check for long or unnecessary quotations and recommend paraphrasing
+  - Generic AI Writing: Look for repetitive patterns and rewrite to sound natural and technical
+  - Technical Originality: Verify explanations, examples, code samples, diagrams are original
+rewriting_guidelines:
+  - "Preserve meaning and technical accuracy"
+  - "Improve clarity and use concise language"
+  - "Prefer active voice"
+  - "Avoid source-specific phrasing; reconstruct explanations from first principles"
+attribution_rules:
+  - "Require attribution for direct quotations, statistics, benchmarks, survey results, research findings, third-party diagrams, external code samples"
+output:
+  overall_assessment: "Low | Medium | High Risk"
+  sections_requiring_review:
+    - section
+  rewriting_suggestions:
+    - suggestion
+  attribution_issues:
+    - missing_citation
+  final_recommendation: "Ready to Publish | Needs Revision"

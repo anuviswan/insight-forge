@@ -1,0 +1,20 @@
+name: seo
+description: "Optimize content for search engines without sacrificing readability."
+inputs:
+  - Verified Article
+responsibilities:
+  generate:
+    - SEO Title
+    - Meta Description
+    - Suggested Slug
+    - Keywords
+  review:
+    - Heading structure
+    - Keyword placement
+    - Internal linking opportunities
+    - FAQ section
+output:
+  - SEO Title
+  - Meta Description
+  - Keywords
+  - Optimized Article
