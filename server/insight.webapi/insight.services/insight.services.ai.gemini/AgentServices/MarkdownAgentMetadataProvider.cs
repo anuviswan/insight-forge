@@ -9,6 +9,8 @@ namespace Insight.WebApi.Services;
 public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto>
 {
     private readonly string _agentRootFolder;
+    private readonly string _workflowsDefinitionFolder;
+    private readonly string _skillsDefinitionFolder;
     private readonly ILogger<MarkdownAgentMetadataProvider> _logger;
     private IDictionary<string, SkillDto>? _skillsCache;
     private IDictionary<string, WorkflowDto>? _workflowsCache;
@@ -16,6 +18,8 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
     public MarkdownAgentMetadataProvider(IOptions<GeminiAgentOptions> options, ILogger<MarkdownAgentMetadataProvider> logger)
     {
         _agentRootFolder = options?.Value?.AgentsDefinitionFile ?? "agents";
+        _workflowsDefinitionFolder = options?.Value?.WorkflowsDefinitionFolder ?? "workflows";
+        _skillsDefinitionFolder = options?.Value?.SkillsDefinitionFolder ?? "skills";
         _logger = logger;
     }
 
@@ -146,13 +150,18 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
     public IDictionary<string, SkillDto> LoadSkills()
     {
         var result = new Dictionary<string, SkillDto>(StringComparer.OrdinalIgnoreCase);
-        if (!Directory.Exists(_agentRootFolder)) return result;
 
-        var skillsDir = Path.Combine(_agentRootFolder, "agents", "skills");
-        if (!Directory.Exists(skillsDir)) return result;
+        if (!Directory.Exists(_skillsDefinitionFolder))
+        {
+            _logger.LogWarning("Skills definition folder not found: {Path}", _skillsDefinitionFolder);
+            return result;
+        }
 
-        var files = Directory.EnumerateFiles(skillsDir)
-            .Where(f => f.EndsWith(".md", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase));
+        // Get all markdown and YAML files from the skills definition folder
+        var files = Directory.EnumerateFiles(_skillsDefinitionFolder)
+            .Where(f => f.EndsWith(".md", StringComparison.OrdinalIgnoreCase) || 
+                        f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || 
+                        f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase));
 
         foreach (var f in files)
         {
@@ -166,19 +175,26 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
     public IDictionary<string, WorkflowDto> LoadWorkflow()
     {
         var result = new Dictionary<string, WorkflowDto>(StringComparer.OrdinalIgnoreCase);
-        if (!Directory.Exists(_agentRootFolder)) return result;
 
-        var workflowsDir = Path.Combine(_agentRootFolder, "agents", "workflows");
-        if (!Directory.Exists(workflowsDir)) return result;
+        if (!Directory.Exists(_workflowsDefinitionFolder))
+        {
+            _logger.LogWarning("Workflows definition folder not found: {Path}", _workflowsDefinitionFolder);
+            return result;
+        }
 
-        var files = Directory.EnumerateFiles(workflowsDir)
-            .Where(f => f.EndsWith(".md", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase));
+        // Get all markdown and YAML files from the workflows definition folder
+        var files = Directory.EnumerateFiles(_workflowsDefinitionFolder)
+            .Where(f => f.EndsWith(".md", StringComparison.OrdinalIgnoreCase) || 
+                        f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || 
+                        f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase));
 
         foreach (var f in files)
         {
             var name = Path.GetFileNameWithoutExtension(f);
             result[name] = new WorkflowDto { Name = name, Content = File.ReadAllText(f) };
         }
+
+        return result;
 
         return result;
     }

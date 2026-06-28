@@ -11,6 +11,8 @@ namespace Insight.WebApi.Services;
 public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto>
 {
     private readonly string _agentRootFolder;
+    private readonly string _workflowsDefinitionFolder;
+    private readonly string _skillsDefinitionFolder;
     private readonly ILogger<YamlAgentMetadataProvider> _logger;
     private readonly IDeserializer _deserializer;
     private IDictionary<string, SkillDto>? _skillsCache;
@@ -19,6 +21,8 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
     public YamlAgentMetadataProvider(IOptions<GeminiAgentOptions> options, ILogger<YamlAgentMetadataProvider> logger)
     {
         _agentRootFolder = options?.Value?.AgentsDefinitionFile ?? "agents";
+        _workflowsDefinitionFolder = options?.Value?.WorkflowsDefinitionFolder ?? "workflows";
+        _skillsDefinitionFolder = options?.Value?.SkillsDefinitionFolder ?? "skills";
         _logger = logger;
         _deserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
@@ -176,32 +180,36 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
     public IDictionary<string, SkillDto> LoadSkills()
     {
         var result = new Dictionary<string, SkillDto>(StringComparer.OrdinalIgnoreCase);
-        if (!Directory.Exists(_agentRootFolder)) return result;
 
-        foreach (var agentDir in Directory.EnumerateDirectories(_agentRootFolder))
+        if (!Directory.Exists(_skillsDefinitionFolder))
         {
-            var agentsYaml = Path.Combine(agentDir, "agents.yaml");
-            var agentsYml = Path.Combine(agentDir, "agents.yml");
-            string? yamlText = null;
-            if (File.Exists(agentsYaml)) yamlText = File.ReadAllText(agentsYaml);
-            else if (File.Exists(agentsYml)) yamlText = File.ReadAllText(agentsYml);
+            _logger.LogWarning("Skills definition folder not found: {Path}", _skillsDefinitionFolder);
+            return result;
+        }
 
-            if (string.IsNullOrWhiteSpace(yamlText)) continue;
+        // Get all YAML files from the skills definition folder
+        var skillFiles = Directory.EnumerateFiles(_skillsDefinitionFolder)
+            .Where(f => f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || 
+                        f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(p => p);
 
+        foreach (var skillFile in skillFiles)
+        {
             try
             {
-                var mapped = _deserializer.Deserialize<AgentDefinitionDto>(yamlText);
-                if (mapped?.Skills != null)
+                var yamlText = File.ReadAllText(skillFile);
+                if (string.IsNullOrWhiteSpace(yamlText)) continue;
+
+                var skill = _deserializer.Deserialize<SkillDto>(yamlText);
+                if (skill != null && !string.IsNullOrWhiteSpace(skill.Name))
                 {
-                    foreach (var s in mapped.Skills)
-                    {
-                        if (!result.ContainsKey(s.Name)) result[s.Name] = s;
-                    }
+                    skill.Content = yamlText;
+                    result[skill.Name] = skill;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "YAML parse failed when loading skills from agent {Dir}", agentDir);
+                _logger.LogWarning(ex, "Failed to deserialize skill from {FilePath}", skillFile);
             }
         }
 
@@ -211,32 +219,36 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
     public IDictionary<string, WorkflowDto> LoadWorkflow()
     {
         var result = new Dictionary<string, WorkflowDto>(StringComparer.OrdinalIgnoreCase);
-        if (!Directory.Exists(_agentRootFolder)) return result;
 
-        foreach (var agentDir in Directory.EnumerateDirectories(_agentRootFolder))
+        if (!Directory.Exists(_workflowsDefinitionFolder))
         {
-            var agentsYaml = Path.Combine(agentDir, "agents.yaml");
-            var agentsYml = Path.Combine(agentDir, "agents.yml");
-            string? yamlText = null;
-            if (File.Exists(agentsYaml)) yamlText = File.ReadAllText(agentsYaml);
-            else if (File.Exists(agentsYml)) yamlText = File.ReadAllText(agentsYml);
+            _logger.LogWarning("Workflows definition folder not found: {Path}", _workflowsDefinitionFolder);
+            return result;
+        }
 
-            if (string.IsNullOrWhiteSpace(yamlText)) continue;
+        // Get all YAML files from the workflows definition folder
+        var workflowFiles = Directory.EnumerateFiles(_workflowsDefinitionFolder)
+            .Where(f => f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || 
+                        f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(p => p);
 
+        foreach (var workflowFile in workflowFiles)
+        {
             try
             {
-                var mapped = _deserializer.Deserialize<AgentDefinitionDto>(yamlText);
-                if (mapped?.Workflows != null)
+                var yamlText = File.ReadAllText(workflowFile);
+                if (string.IsNullOrWhiteSpace(yamlText)) continue;
+
+                var workflow = _deserializer.Deserialize<WorkflowDto>(yamlText);
+                if (workflow != null && !string.IsNullOrWhiteSpace(workflow.Name))
                 {
-                    foreach (var w in mapped.Workflows)
-                    {
-                        if (!result.ContainsKey(w.Name)) result[w.Name] = w;
-                    }
+                    workflow.Content = yamlText;
+                    result[workflow.Name] = workflow;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "YAML parse failed when loading workflows from agent {Dir}", agentDir);
+                _logger.LogWarning(ex, "Failed to deserialize workflow from {FilePath}", workflowFile);
             }
         }
 
