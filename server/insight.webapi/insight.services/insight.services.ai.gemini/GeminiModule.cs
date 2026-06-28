@@ -12,7 +12,7 @@ namespace Insight.Services.Ai.Gemini;
 public class GeminiModule : IModule
 {
     public string ModuleName => "Gemini";
-    
+
     public void RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddHttpClient<IAntigravityApiClient, AntigravityApiClient>(client =>
@@ -21,8 +21,12 @@ public class GeminiModule : IModule
             client.BaseAddress = new Uri(baseUrl);
         });
 
-        // Register metadata provider and agent
-        services.AddKeyedScoped<IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto>, FileAgentMetadataProvider>(ModuleName);
+        // Bind options from configuration (appsettings.json)
+        services.Configure<GeminiAgentOptions>(configuration.GetSection("GeminiAgents"));
+
+        // Register metadata providers and agent. Use YAML provider as the keyed default for Gemini.
+        services.AddKeyedScoped<IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto>, YamlAgentMetadataProvider>(ModuleName);
+        services.AddScoped<IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto>, MarkdownAgentMetadataProvider>();
         services.AddScoped<IAgent, AntigravityAgent>();
     }
 }

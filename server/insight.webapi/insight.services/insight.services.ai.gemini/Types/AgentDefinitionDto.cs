@@ -5,6 +5,8 @@ public class AgentDefinitionDto
     public string? AgentsMd { get; set; }
     public List<WorkflowDto>? Workflows { get; set; }
     public List<SkillDto>? Skills { get; set; }
+
+    public string Content { get; set; } = string.Empty;
 }
 
 public class WorkflowDto

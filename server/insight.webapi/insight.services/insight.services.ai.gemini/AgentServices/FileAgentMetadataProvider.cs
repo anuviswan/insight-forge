@@ -1,24 +1,25 @@
 using Insight.Services.Ai.Gemini.Types;
+using Insight.Services.Ai.Gemini.AgentServices;
 using Insight.Services.Interfaces.Ai;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Insight.WebApi.Services;
 
-public class FileAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionDto,SkillDto,WorkflowDto>
+public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto>
 {
     private readonly string _agentRootFolder;
-    private readonly ILogger<FileAgentMetadataProvider> _logger;
+    private readonly ILogger<MarkdownAgentMetadataProvider> _logger;
 
-    public FileAgentMetadataProvider([FromKeyedServices("Gemini")]string agentFolder, ILogger<FileAgentMetadataProvider> logger)
+    public MarkdownAgentMetadataProvider(IOptions<GeminiAgentOptions> options, ILogger<MarkdownAgentMetadataProvider> logger)
     {
-        _agentRootFolder = agentFolder;
+        _agentRootFolder = options?.Value?.AgentRootFolder ?? "agents";
         _logger = logger;
     }
 
     public AgentDefinitionDto GetAgent(string agentName)
     {
-        throw new NotImplementedException();
+        return GetAgentDefinitionAsync(agentName).GetAwaiter().GetResult();
     }
 
     public async Task<AgentDefinitionDto> GetAgentDefinitionAsync(string agentFolder, CancellationToken cancellationToken = default)
@@ -84,26 +85,104 @@ public class FileAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
 
     public SkillDto GetSkill(string skillName)
     {
-        throw new NotImplementedException();
+        // Search all agents for the skill
+        if (!Directory.Exists(_agentRootFolder)) return new SkillDto { Name = skillName };
+
+        foreach (var agentDir in Directory.EnumerateDirectories(_agentRootFolder))
+        {
+            var skillsDir = Path.Combine(agentDir, "agents", "skills");
+            if (!Directory.Exists(skillsDir)) continue;
+
+            var match = Directory.EnumerateFiles(skillsDir)
+                .FirstOrDefault(f => string.Equals(Path.GetFileNameWithoutExtension(f), skillName, StringComparison.OrdinalIgnoreCase));
+
+            if (match != null)
+            {
+                return new SkillDto { Name = skillName, Content = File.ReadAllText(match) };
+            }
+        }
+
+        return new SkillDto { Name = skillName };
     }
 
     public WorkflowDto GetWorkflow(string workflowName)
     {
-        throw new NotImplementedException();
+        // Search all agents for the workflow
+        if (!Directory.Exists(_agentRootFolder)) return new WorkflowDto { Name = workflowName };
+
+        foreach (var agentDir in Directory.EnumerateDirectories(_agentRootFolder))
+        {
+            var wfDir = Path.Combine(agentDir, "agents", "workflows");
+            if (!Directory.Exists(wfDir)) continue;
+
+            var match = Directory.EnumerateFiles(wfDir)
+                .FirstOrDefault(f => string.Equals(Path.GetFileNameWithoutExtension(f), workflowName, StringComparison.OrdinalIgnoreCase));
+
+            if (match != null)
+            {
+                return new WorkflowDto { Name = workflowName, Content = File.ReadAllText(match) };
+            }
+        }
+
+        return new WorkflowDto { Name = workflowName };
     }
 
     public IDictionary<string, AgentDefinitionDto> Load(string agentFolder)
     {
-        throw new NotImplementedException();
+        var result = new Dictionary<string, AgentDefinitionDto>(StringComparer.OrdinalIgnoreCase);
+        var folder = Path.Combine(_agentRootFolder, agentFolder);
+        if (!Directory.Exists(folder)) return result;
+
+        foreach (var sub in Directory.EnumerateDirectories(folder))
+        {
+            var name = Path.GetFileName(sub);
+            try
+            {
+                var dto = GetAgentDefinitionAsync(name).GetAwaiter().GetResult();
+                result[name] = dto;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load agent {Agent}", name);
+            }
+        }
+
+        return result;
     }
 
     IDictionary<string, SkillDto> ICanReadSkillDefinition<SkillDto>.Load(string skillFolder)
     {
-        throw new NotImplementedException();
+        var result = new Dictionary<string, SkillDto>(StringComparer.OrdinalIgnoreCase);
+        var folder = Path.Combine(_agentRootFolder, skillFolder);
+        if (!Directory.Exists(folder)) return result;
+
+        var files = Directory.EnumerateFiles(folder)
+            .Where(f => f.EndsWith(".md", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase));
+
+        foreach (var f in files)
+        {
+            var name = Path.GetFileNameWithoutExtension(f);
+            result[name] = new SkillDto { Name = name, Content = File.ReadAllText(f) };
+        }
+
+        return result;
     }
 
     IDictionary<string, WorkflowDto> ICanReadWorkflowDefinition<WorkflowDto>.Load(string workflowFolder)
     {
-        throw new NotImplementedException();
+        var result = new Dictionary<string, WorkflowDto>(StringComparer.OrdinalIgnoreCase);
+        var folder = Path.Combine(_agentRootFolder, workflowFolder);
+        if (!Directory.Exists(folder)) return result;
+
+        var files = Directory.EnumerateFiles(folder)
+            .Where(f => f.EndsWith(".md", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase));
+
+        foreach (var f in files)
+        {
+            var name = Path.GetFileNameWithoutExtension(f);
+            result[name] = new WorkflowDto { Name = name, Content = File.ReadAllText(f) };
+        }
+
+        return result;
     }
 }
