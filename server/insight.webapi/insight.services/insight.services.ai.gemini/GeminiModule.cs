@@ -1,5 +1,6 @@
 ﻿using Insight.Services.Ai.Gemini.AgentServices;
 using Insight.Services.Ai.Gemini.Interfaces;
+using Insight.Services.Ai.Gemini.Options;
 using Insight.Services.Ai.Gemini.Types;
 using Insight.Services.Interfaces.Ai;
 using Insight.Services.Interfaces.Core;
@@ -15,7 +16,7 @@ public class GeminiModule : IModule
 
     public void RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddHttpClient<IAntigravityApiClient, AntigravityApiClient>(client =>
+        services.AddHttpClient<IGeminiApiClient, AntigravityApiClient>(client =>
         {
             var baseUrl = configuration["Antigravity:BaseUrl"] ?? "https://generativelanguage.googleapis.com/v1beta/";
             client.BaseAddress = new Uri(baseUrl);

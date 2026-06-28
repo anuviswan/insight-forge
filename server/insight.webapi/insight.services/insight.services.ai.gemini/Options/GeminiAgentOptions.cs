@@ -1,4 +1,4 @@
-namespace Insight.Services.Ai.Gemini.AgentServices;
+namespace Insight.Services.Ai.Gemini.Options;
 
 public class GeminiAgentOptions
 {

@@ -1,10 +1,10 @@
 using Insight.Services.Ai.Gemini.Types;
 using Insight.Services.Interfaces.Ai;
-using Insight.Services.Ai.Gemini.AgentServices;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
+using Insight.Services.Ai.Gemini.Options;
 
 namespace Insight.WebApi.Services;
 
