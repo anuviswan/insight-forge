@@ -3,7 +3,7 @@ using Insight.Services.Interfaces.Core;
 
 namespace Insight.WebApi.Services;
 
-public class BlogService(IAntigravityAgent agent) : IBlogService
+public class BlogService(IAgent agent) : IBlogService
 {
     private readonly IAgent _agent = agent;
 

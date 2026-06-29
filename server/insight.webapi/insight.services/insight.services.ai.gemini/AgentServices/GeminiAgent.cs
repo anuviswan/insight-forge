@@ -4,10 +4,20 @@ using Insight.Services.Interfaces.Ai;
 
 namespace Insight.Services.Ai.Gemini.AgentServices;
 
-public class AntigravityAgent(IAntigravityApiClient apiClient, IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto> metadataProvider) : IAgent
+public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto> metadataProvider) : IAgent
 {
     private const string AgentName = "Blog Writer Agent";
     private const string Workflow = "create-blogpost";
+
+    public Task<string> CheckIfAgentExists(string agentName, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<string> CreateAgent(string agentName, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
 
     public async Task<string> CreateBlogPostAsync(string topic, CancellationToken cancellationToken = default)
     {

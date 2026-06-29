@@ -1,8 +1,8 @@
 using Insight.Services.Ai.Gemini.Types;
-using Insight.Services.Ai.Gemini.AgentServices;
 using Insight.Services.Interfaces.Ai;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Insight.Services.Ai.Gemini.Options;
 
 namespace Insight.WebApi.Services;
 

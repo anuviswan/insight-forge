@@ -1,8 +1,8 @@
-namespace Insight.Services.Ai.Gemini.AgentServices;
+namespace Insight.Services.Ai.Gemini.Options;
 
 public class GeminiAgentOptions
 {
-    // Root folder where agent definition folders live (can be absolute or relative to application base)
+    public string ApiKey { get; set; }
     public string AgentsDefinitionFile { get; set; } = "agents";
     public string WorkflowsDefinitionFolder { get; set; } = "workflows";
 
