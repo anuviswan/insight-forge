@@ -14,9 +14,18 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
         throw new NotImplementedException();
     }
 
-    public Task<string> CreateAgent(string agentName, CancellationToken cancellationToken = default)
+    public async Task<string> CreateAgent(string agentName, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrWhiteSpace(agentName))
+            throw new ArgumentException("Agent name must be provided", nameof(agentName));
+
+        var agentDef = metadataProvider.GetAgent(agentName);
+        if (agentDef == null)
+            throw new InvalidOperationException($"Agent definition not found for '{agentName}'");
+
+        var systemInstruction = agentDef.Content ?? $"You are the {agentName} agent.";
+        var result = await apiClient.CreateManagedAgentAsync(agentName, systemInstruction, "", agentDef, cancellationToken);
+        return result ?? string.Empty;
     }
 
     public async Task<string> CreateBlogPostAsync(string topic, CancellationToken cancellationToken = default)

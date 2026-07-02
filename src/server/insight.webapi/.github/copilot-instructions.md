@@ -1,11 +1,27 @@
-# Copilot Instructions – .NET 10 Web API 
+#  Github Copilot Instructions - Insight Forge API
+
+## Project Overview
+
+Insight Forge is a C# Web API built on .NET 10.
+
+The API is responsible for:
+
+Managing AI agents.
+Loading agent definitions from disk.
+Executing agent workflows.
+Managing prompts and templates.
+Exposing REST endpoints for clients.
+
+The application is designed to support multiple AI providers. The business logic must remain independent of any specific provider.
+
+
+
 ## Platform
 - Target framework: .NET 10
 - Use latest C# version
 - Nullable enabled
 - Implicit usings enabled
 - All I/O must be async/await
-- Always use `ConfigureAwait(false)` in library code for await
 - Use Controllers by default (do not generate minimal APIs unless explicitly requested)
 
 ---
@@ -28,14 +44,6 @@ Rules:
  - No static service access.
 
 ---
-## Azure Table Storage
-
-## Design Rules:
-- Use Repository pattern for table access.
-- Do not expose TableEntity outside Infrastructure.
-- Map Table entities to Domain models.
-- Handle RequestFailedException and convert to application-level errors.
-
 ---
 ## Error Handling
 - Do not throw exceptions for expected domain errors.
