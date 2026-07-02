@@ -1,43 +1,35 @@
-Insight-forge: Copilot Instruction File
+# Insight-forge: Copilot Instruction File
 =====================================
 
-Purpose
--------
+## Purpose
+
 This file describes how Copilot (and contributors) should generate, modify, and reason about code for the Insight-forge server-side application.
 
+## High-level requirements
 
-
-High-level requirements
------------------------
 - App name: Insight-forge
 - Server: C# Web API targeting .NET 10
 - The server is responsible for orchestration: calling agents, creating/ managing agents, routing requests, business logic.
 - Agent implementation details (provider-specific code, API contracts, credentials) must be strictly separated from business logic and orchestration.
 - Initial provider: Gemini. Design must allow adding other agent providers without changing business logic.
 
-Architecture and folder guidance
--------------------------------
+## Architecture and folder guidance
+
 - src/InsightForge.Api - Web API controllers, DTOs, request/response mapping, routing.
 - src/InsightForge.Core - Business logic, domain models, services that do NOT reference provider SDKs.
 - src/InsightForge.Agents - Abstractions and provider implementations.
   - src/InsightForge.Agents.Abstractions - IAgentClient, IAgentFactory, models used across providers
   - src/InsightForge.Agents.Gemini - Gemini-specific client, transport, configuration
 
-Design principles
------------------
+## Design principles
+
 - Define clear interfaces in Agents.Abstractions (e.g., IAgentClient, IAgentManager, IAgentCredentialsStore). Business services depend only on these interfaces.
 - Implement provider-specific logic in separate projects (e.g., Agents.Gemini) that implement the abstractions.
 - Register abstractions with dependency injection in the API startup using configuration to select provider implementation.
+- Module specific depedency injection should be done at the module using the IModule
 - Keep configuration (API keys, endpoints) out of source; use configuration providers or secret stores.
 - Keep minimal surface area: map provider responses to shared domain models inside Agents layer before returning to Core.
 
-Example interfaces (guidance)
-----------------------------
-- public interface IAgentClient
-  - Task<AgentResponse> SendAsync(AgentRequest request, CancellationToken ct);
-- public interface IAgentManager
-  - Task<ManagedAgent> CreateAgentAsync(AgentSpec spec, CancellationToken ct);
-  - Task<AgentStatus> GetStatusAsync(string agentId, CancellationToken ct);
 
 Dependency injection and selection
 ---------------------------------

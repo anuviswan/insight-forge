@@ -20,32 +20,6 @@ The platform separates business capabilities from AI provider implementations, a
 
 ---
 
-# Solution Architecture
-
-The solution follows Clean Architecture.
-
-```
-Presentation
-        │
-Application
-        │
-Domain
-        │
-Infrastructure
-```
-
-Dependencies always point inward.
-
-The Domain layer must never depend on Infrastructure.
-
-Business logic belongs in Application.
-
-Infrastructure contains external integrations.
-
-Presentation contains only transport concerns.
-
----
-
 # Repository Layout
 
 ```
