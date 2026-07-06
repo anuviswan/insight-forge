@@ -82,9 +82,9 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
         return GetAgentDefinitionAsync(agentName).GetAwaiter().GetResult();
     }
 
-    public async Task<AgentDefinitionDto> GetAgentDefinitionAsync(string agentFolder, CancellationToken cancellationToken = default)
+    public async Task<AgentDefinitionDto> GetAgentDefinitionAsync(string agentIdentifier, CancellationToken cancellationToken = default)
     {
-        var root = Path.Combine(_agentRootFolder, agentFolder);
+        var root = Path.Combine(_agentRootFolder, agentIdentifier);
         var dto = new AgentDefinitionDto
         {
             Workflows = new List<WorkflowDto>(),
@@ -93,7 +93,7 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
 
         if (!Directory.Exists(root))
         {
-            _logger.LogWarning("Agent folder not found: {Path}", root);
+            _logger.LogWarning("Agent or provider folder not found: {Path}", root);
             return dto;
         }
 
@@ -106,28 +106,39 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
 
         if (string.IsNullOrWhiteSpace(yamlText))
         {
-            _logger.LogWarning("No structured YAML agent definition found for {AgentFolder}", agentFolder);
+            _logger.LogWarning("No structured YAML agent definition found for {AgentIdentifier}", agentIdentifier);
             return dto;
         }
 
         try
         {
-            var mapped = _deserializer.Deserialize<AgentDefinitionDto>(yamlText!);
+            // Try to deserialize as collection first (new pattern)
+            var collection = _deserializer.Deserialize<AgentsCollectionDto>(yamlText);
+            if (collection?.Agents?.Any() == true)
+            {
+                var agent = collection.Agents[0];
+                agent.Provider = agentIdentifier;
+                agent.Content = yamlText;
+                agent.Workflows ??= new List<WorkflowDto>();
+                agent.Skills ??= new List<SkillDto>();
+                PopulateSkillsAndWorkflows(agent);
+                return agent;
+            }
+
+            // Fallback: try direct deserialization (backward compatibility)
+            var mapped = _deserializer.Deserialize<AgentDefinitionDto>(yamlText);
             if (mapped != null)
             {
-                mapped.Content = yamlText!;
+                mapped.Content = yamlText;
                 mapped.Workflows ??= new List<WorkflowDto>();
                 mapped.Skills ??= new List<SkillDto>();
-
-                // Populate skills and workflows from cached dictionaries based on names
                 PopulateSkillsAndWorkflows(mapped);
-
                 return mapped;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to deserialize YAML for agent {AgentFolder}", agentFolder);
+            _logger.LogWarning(ex, "Failed to deserialize YAML for {AgentIdentifier}", agentIdentifier);
         }
 
         return dto;
@@ -160,21 +171,66 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
         var result = new Dictionary<string, AgentDefinitionDto>(StringComparer.OrdinalIgnoreCase);
         if (!Directory.Exists(_agentRootFolder)) return result;
 
-        foreach (var sub in Directory.EnumerateDirectories(_agentRootFolder))
+        foreach (var providerFolder in Directory.EnumerateDirectories(_agentRootFolder))
         {
-            var name = Path.GetFileName(sub);
-            try
-            {
-                var dto = GetAgentDefinitionAsync(name).GetAwaiter().GetResult();
-                result[name] = dto;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to load agent {Agent}", name);
-            }
+            var providerName = Path.GetFileName(providerFolder);
+            LoadAgentsFromProvider(providerName, result);
         }
 
         return result;
+    }
+
+    private void LoadAgentsFromProvider(string providerName, IDictionary<string, AgentDefinitionDto> result)
+    {
+        var root = Path.Combine(_agentRootFolder, providerName);
+        var agentsYaml = Path.Combine(root, "agents.yaml");
+        var agentsYml = Path.Combine(root, "agents.yml");
+
+        string? yamlText = null;
+        if (File.Exists(agentsYaml)) yamlText = File.ReadAllText(agentsYaml);
+        else if (File.Exists(agentsYml)) yamlText = File.ReadAllText(agentsYml);
+
+        if (string.IsNullOrWhiteSpace(yamlText))
+        {
+            _logger.LogWarning("No agents definition found for provider {Provider}", providerName);
+            return;
+        }
+
+        try
+        {
+            var collection = _deserializer.Deserialize<AgentsCollectionDto>(yamlText);
+            if (collection?.Agents?.Any() != true)
+            {
+                _logger.LogWarning("No agents found in {Provider}/agents.yaml", providerName);
+                return;
+            }
+
+            foreach (var agent in collection.Agents)
+            {
+                agent.Provider = providerName;
+                agent.Content = yamlText;
+
+                string key = !string.IsNullOrWhiteSpace(agent.Name)
+                    ? agent.Name
+                    : providerName;
+
+                if (!result.ContainsKey(key))
+                {
+                    PopulateSkillsAndWorkflows(agent);
+                    result[key] = agent;
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Duplicate agent name '{AgentName}' in provider {Provider}. Skipping.",
+                        key, providerName);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to deserialize agents for provider {Provider}", providerName);
+        }
     }
 
     public IDictionary<string, SkillDto> LoadSkills()

@@ -3,6 +3,8 @@ using Insight.Services.Interfaces.Ai;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Insight.Services.Ai.Gemini.Options;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace Insight.WebApi.Services;
 
@@ -12,6 +14,7 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
     private readonly string _workflowsDefinitionFolder;
     private readonly string _skillsDefinitionFolder;
     private readonly ILogger<MarkdownAgentMetadataProvider> _logger;
+    private readonly IDeserializer _deserializer;
     private IDictionary<string, SkillDto>? _skillsCache;
     private IDictionary<string, WorkflowDto>? _workflowsCache;
 
@@ -21,6 +24,10 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
         _workflowsDefinitionFolder = options?.Value?.WorkflowsDefinitionFolder ?? "workflows";
         _skillsDefinitionFolder = options?.Value?.SkillsDefinitionFolder ?? "skills";
         _logger = logger;
+        _deserializer = new DeserializerBuilder()
+            .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .IgnoreUnmatchedProperties()
+            .Build();
     }
 
     private void PopulateSkillsAndWorkflows(AgentDefinitionDto dto)
@@ -39,9 +46,9 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
         return GetAgentDefinitionAsync(agentName).GetAwaiter().GetResult();
     }
 
-    public async Task<AgentDefinitionDto> GetAgentDefinitionAsync(string agentFolder, CancellationToken cancellationToken = default)
+    public async Task<AgentDefinitionDto> GetAgentDefinitionAsync(string agentIdentifier, CancellationToken cancellationToken = default)
     {
-        var root = Path.Combine(_agentRootFolder, agentFolder);
+        var root = Path.Combine(_agentRootFolder, agentIdentifier);
         var dto = new AgentDefinitionDto
         {
             Workflows = new List<WorkflowDto>(),
@@ -50,7 +57,7 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
 
         if (!Directory.Exists(root))
         {
-            _logger.LogWarning("Agent folder not found: {Path}", root);
+            _logger.LogWarning("Agent or provider folder not found: {Path}", root);
             return dto;
         }
 
@@ -58,47 +65,86 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
         var agentsYaml = Path.Combine(root, "agents.yaml");
         var agentsYml = Path.Combine(root, "agents.yml");
         var agentsMd = Path.Combine(root, "agents.md");
+        string? content = null;
+        bool isYaml = false;
+
         if (File.Exists(agentsYaml))
         {
-            dto.AgentsMd = await File.ReadAllTextAsync(agentsYaml, cancellationToken);
+            content = await File.ReadAllTextAsync(agentsYaml, cancellationToken);
+            isYaml = true;
         }
         else if (File.Exists(agentsYml))
         {
-            dto.AgentsMd = await File.ReadAllTextAsync(agentsYml, cancellationToken);
+            content = await File.ReadAllTextAsync(agentsYml, cancellationToken);
+            isYaml = true;
         }
         else if (File.Exists(agentsMd))
         {
-            dto.AgentsMd = await File.ReadAllTextAsync(agentsMd, cancellationToken);
+            content = await File.ReadAllTextAsync(agentsMd, cancellationToken);
+            isYaml = false;
         }
 
-        var wfDir = Path.Combine(root, "agents", "workflows");
-        if (Directory.Exists(wfDir))
+        if (string.IsNullOrWhiteSpace(content))
         {
-            var workflowFiles = Directory.EnumerateFiles(wfDir)
-                .Where(f => f.EndsWith(".md", System.StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yaml", System.StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yml", System.StringComparison.OrdinalIgnoreCase))
-                .OrderBy(p => p);
+            _logger.LogWarning("No agent definition found for {AgentIdentifier}", agentIdentifier);
+            return dto;
+        }
 
-            foreach (var f in workflowFiles)
+        try
+        {
+            List<AgentDefinitionDto> agents;
+            if (isYaml)
             {
-                dto.Workflows.Add(new WorkflowDto { Name = Path.GetFileNameWithoutExtension(f), Content = await File.ReadAllTextAsync(f, cancellationToken) });
+                agents = ExtractAgentsFromYaml(content);
+            }
+            else
+            {
+                agents = ExtractAgentsFromMarkdown(content);
+            }
+
+            if (agents.Any())
+            {
+                var agent = agents[0];
+                agent.Provider = agentIdentifier;
+                agent.Content = content;
+                agent.AgentsMd = content;
+                agent.Workflows ??= new List<WorkflowDto>();
+                agent.Skills ??= new List<SkillDto>();
+
+                var wfDir = Path.Combine(root, "agents", "workflows");
+                if (Directory.Exists(wfDir))
+                {
+                    var workflowFiles = Directory.EnumerateFiles(wfDir)
+                        .Where(f => f.EndsWith(".md", System.StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yaml", System.StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yml", System.StringComparison.OrdinalIgnoreCase))
+                        .OrderBy(p => p);
+
+                    foreach (var f in workflowFiles)
+                    {
+                        agent.Workflows.Add(new WorkflowDto { Name = Path.GetFileNameWithoutExtension(f), Content = await File.ReadAllTextAsync(f, cancellationToken) });
+                    }
+                }
+
+                var skillsDir = Path.Combine(root, "agents", "skills");
+                if (Directory.Exists(skillsDir))
+                {
+                    var skillFiles = Directory.EnumerateFiles(skillsDir)
+                        .Where(f => f.EndsWith(".md", System.StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yaml", System.StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yml", System.StringComparison.OrdinalIgnoreCase))
+                        .OrderBy(p => p);
+
+                    foreach (var f in skillFiles)
+                    {
+                        agent.Skills.Add(new SkillDto { Name = Path.GetFileNameWithoutExtension(f), Content = await File.ReadAllTextAsync(f, cancellationToken) });
+                    }
+                }
+
+                PopulateSkillsAndWorkflows(agent);
+                return agent;
             }
         }
-
-        var skillsDir = Path.Combine(root, "agents", "skills");
-        if (Directory.Exists(skillsDir))
+        catch (Exception ex)
         {
-            var skillFiles = Directory.EnumerateFiles(skillsDir)
-                .Where(f => f.EndsWith(".md", System.StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yaml", System.StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yml", System.StringComparison.OrdinalIgnoreCase))
-                .OrderBy(p => p);
-
-            foreach (var f in skillFiles)
-            {
-                dto.Skills.Add(new SkillDto { Name = Path.GetFileNameWithoutExtension(f), Content = await File.ReadAllTextAsync(f, cancellationToken) });
-            }
+            _logger.LogWarning(ex, "Failed to deserialize agents for {AgentIdentifier}", agentIdentifier);
         }
-
-        // Populate skills and workflows using helper
-        PopulateSkillsAndWorkflows(dto);
 
         return dto;
     }
@@ -130,21 +176,148 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
         var result = new Dictionary<string, AgentDefinitionDto>(StringComparer.OrdinalIgnoreCase);
         if (!Directory.Exists(_agentRootFolder)) return result;
 
-        foreach (var sub in Directory.EnumerateDirectories(_agentRootFolder))
+        foreach (var providerFolder in Directory.EnumerateDirectories(_agentRootFolder))
         {
-            var name = Path.GetFileName(sub);
-            try
-            {
-                var dto = GetAgentDefinitionAsync(name).GetAwaiter().GetResult();
-                result[name] = dto;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to load agent {Agent}", name);
-            }
+            var providerName = Path.GetFileName(providerFolder);
+            LoadAgentsFromProvider(providerName, result);
         }
 
         return result;
+    }
+
+    private void LoadAgentsFromProvider(string providerName, IDictionary<string, AgentDefinitionDto> result)
+    {
+        var root = Path.Combine(_agentRootFolder, providerName);
+        var agentsYaml = Path.Combine(root, "agents.yaml");
+        var agentsYml = Path.Combine(root, "agents.yml");
+        var agentsMd = Path.Combine(root, "agents.md");
+
+        string? content = null;
+        bool isYaml = false;
+
+        if (File.Exists(agentsYaml))
+        {
+            content = File.ReadAllText(agentsYaml);
+            isYaml = true;
+        }
+        else if (File.Exists(agentsYml))
+        {
+            content = File.ReadAllText(agentsYml);
+            isYaml = true;
+        }
+        else if (File.Exists(agentsMd))
+        {
+            content = File.ReadAllText(agentsMd);
+            isYaml = false;
+        }
+
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            _logger.LogWarning("No agents definition found for provider {Provider}", providerName);
+            return;
+        }
+
+        try
+        {
+            List<AgentDefinitionDto> agents;
+            if (isYaml)
+            {
+                agents = ExtractAgentsFromYaml(content);
+            }
+            else
+            {
+                agents = ExtractAgentsFromMarkdown(content);
+            }
+
+            foreach (var agent in agents)
+            {
+                agent.Provider = providerName;
+                agent.Content = content;
+                agent.AgentsMd = content;
+
+                string key = !string.IsNullOrWhiteSpace(agent.Name)
+                    ? agent.Name
+                    : providerName;
+
+                if (!result.ContainsKey(key))
+                {
+                    PopulateSkillsAndWorkflows(agent);
+                    result[key] = agent;
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Duplicate agent name '{AgentName}' in provider {Provider}",
+                        key, providerName);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to load agents for provider {Provider}", providerName);
+        }
+    }
+
+    private List<AgentDefinitionDto> ExtractAgentsFromYaml(string yamlText)
+    {
+        var agents = new List<AgentDefinitionDto>();
+        try
+        {
+            var collection = _deserializer.Deserialize<AgentsCollectionDto>(yamlText);
+            if (collection?.Agents != null)
+            {
+                foreach (var agent in collection.Agents)
+                {
+                    agent.Workflows ??= new List<WorkflowDto>();
+                    agent.Skills ??= new List<SkillDto>();
+                    agents.Add(agent);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to extract YAML agents");
+        }
+        return agents;
+    }
+
+    private List<AgentDefinitionDto> ExtractAgentsFromMarkdown(string markdownText)
+    {
+        var agents = new List<AgentDefinitionDto>();
+        try
+        {
+            var lines = markdownText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            AgentDefinitionDto? currentAgent = null;
+
+            foreach (var line in lines)
+            {
+                if (line.TrimStart().StartsWith("### "))
+                {
+                    if (currentAgent != null)
+                    {
+                        agents.Add(currentAgent);
+                    }
+
+                    var agentName = line.Replace("###", "").Trim();
+                    currentAgent = new AgentDefinitionDto
+                    {
+                        Name = agentName,
+                        Workflows = new List<WorkflowDto>(),
+                        Skills = new List<SkillDto>()
+                    };
+                }
+            }
+
+            if (currentAgent != null)
+            {
+                agents.Add(currentAgent);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to extract markdown agents");
+        }
+        return agents;
     }
 
     public IDictionary<string, SkillDto> LoadSkills()
@@ -193,8 +366,6 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
             var name = Path.GetFileNameWithoutExtension(f);
             result[name] = new WorkflowDto { Name = name, Content = File.ReadAllText(f) };
         }
-
-        return result;
 
         return result;
     }
