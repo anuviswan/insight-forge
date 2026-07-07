@@ -41,20 +41,53 @@ public class AuthController : ControllerBase
                 ErrorCode = "INVALID_REQUEST"
             });
 
-        var result = await _userService.RegisterAsync(request, cancellationToken);
+        // Map from API model to service model
+        var serviceRequest = new UserRegistrationRequest
+        {
+            Email = request.Email,
+            Password = request.Password,
+            ConfirmPassword = request.ConfirmPassword
+        };
+
+        var result = await _userService.RegisterAsync(serviceRequest, cancellationToken);
 
         if (result.Success)
         {
             _logger.LogInformation("User registration successful: {UserId}", result.UserId);
-            return CreatedAtAction(nameof(Register), result);
+            return CreatedAtAction(nameof(Register), new RegistrationResponse
+            {
+                Success = result.Success,
+                UserId = result.UserId,
+                Message = result.Message,
+                ErrorCode = result.ErrorCode,
+                ValidationErrors = result.ValidationErrors
+            });
         }
 
         // Return appropriate HTTP status based on error code
         return result.ErrorCode switch
         {
-            "DUPLICATE_EMAIL" => Conflict(result),
-            "WEAK_PASSWORD" or "VALIDATION_ERROR" => BadRequest(result),
-            _ => BadRequest(result)
+            "DUPLICATE_EMAIL" => Conflict(new RegistrationResponse
+            {
+                Success = result.Success,
+                Message = result.Message,
+                ErrorCode = result.ErrorCode,
+                ValidationErrors = result.ValidationErrors
+            }),
+            "WEAK_PASSWORD" or "VALIDATION_ERROR" => BadRequest(new RegistrationResponse
+            {
+                Success = result.Success,
+                Message = result.Message,
+                ErrorCode = result.ErrorCode,
+                ValidationErrors = result.ValidationErrors
+            }),
+            _ => BadRequest(new RegistrationResponse
+            {
+                Success = result.Success,
+                Message = result.Message,
+                ErrorCode = result.ErrorCode,
+                ValidationErrors = result.ValidationErrors
+            })
         };
     }
 
@@ -86,10 +119,20 @@ public class AuthController : ControllerBase
         if (result.Success)
         {
             _logger.LogInformation("Email verification successful");
-            return Ok(result);
+            return Ok(new VerifyEmailResponse
+            {
+                Success = result.Success,
+                Message = result.Message,
+                ErrorCode = result.ErrorCode
+            });
         }
 
-        return BadRequest(result);
+        return BadRequest(new VerifyEmailResponse
+        {
+            Success = result.Success,
+            Message = result.Message,
+            ErrorCode = result.ErrorCode
+        });
     }
 
     /// <summary>

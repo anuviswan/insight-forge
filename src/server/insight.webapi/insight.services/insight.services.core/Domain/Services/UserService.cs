@@ -33,7 +33,7 @@ public class UserService : IUserService
     /// Register a new user.
     /// Validates email, password strength, checks uniqueness, hashes password, sends verification email.
     /// </summary>
-    public async Task<UserRegistrationResult> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
+    public async Task<UserRegistrationResult> RegisterAsync(UserRegistrationRequest request, CancellationToken cancellationToken = default)
     {
         // Validate input
         var validationResult = ValidateRegistrationRequest(request);
@@ -108,7 +108,7 @@ public class UserService : IUserService
 
             await _storage.CreateVerificationTokenAsync(verification, cancellationToken);
 
-            // Send verification email (fire and forget - dont block response)
+            // Send verification email (fire and forget - don't block response)
             _ = Task.Run(() => SendVerificationEmailAsync(request.Email, verificationToken, cancellationToken), cancellationToken);
 
             _logger.LogInformation("User registered successfully: {UserId} ({Email})", userId, request.Email);
@@ -256,7 +256,7 @@ public class UserService : IUserService
         }
     }
 
-    private RegistrationValidationResult ValidateRegistrationRequest(RegisterRequest request)
+    private RegistrationValidationResult ValidateRegistrationRequest(UserRegistrationRequest request)
     {
         var result = new RegistrationValidationResult { IsValid = true };
 

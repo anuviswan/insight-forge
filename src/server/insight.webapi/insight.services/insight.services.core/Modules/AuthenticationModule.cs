@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Insight.Services.Core.Modules;
 
 /// <summary>
-/// Wrapper to hold both table clients for DI.
+/// Wrapper to hold both table clients.
 /// </summary>
 public class TableClientProvider
 {
@@ -37,25 +37,31 @@ public class AuthenticationModule : IModule
         // Register Table Client Provider as singleton
         services.AddSingleton(sp =>
         {
-            var usersClient = new TableClient(new Uri(storageConnectionString), usersTableName);
-            usersClient.CreateTableIfNotExists();
+            // Use TableServiceClient to manage table clients
+            var serviceClient = new TableServiceClient(storageConnectionString);
+            
+            // Create tables if they don't exist
+            try
+            {
+                serviceClient.CreateTableIfNotExistsAsync(usersTableName).Wait();
+                serviceClient.CreateTableIfNotExistsAsync(verificationsTableName).Wait();
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail startup if tables can't be created
+                // They might be created manually or have permission issues in some environments
+                System.Diagnostics.Debug.WriteLine($"Warning: Could not ensure tables exist: {ex.Message}");
+            }
 
-            var verificationsClient = new TableClient(new Uri(storageConnectionString), verificationsTableName);
-            verificationsClient.CreateTableIfNotExists();
+            // Get table clients
+            var usersClient = serviceClient.GetTableClient(usersTableName);
+            var verificationsClient = serviceClient.GetTableClient(verificationsTableName);
 
             return new TableClientProvider
             {
                 UsersTable = usersClient,
                 VerificationsTable = verificationsClient
             };
-        });
-
-        // Register table clients from provider
-        services.AddSingleton(sp => sp.GetRequiredService<TableClientProvider>().UsersTable);
-        services.AddSingleton(sp =>
-        {
-            // Create a named instance - workaround for multiple registrations of same type
-            return sp.GetRequiredService<TableClientProvider>().VerificationsTable;
         });
 
         // Register core services
