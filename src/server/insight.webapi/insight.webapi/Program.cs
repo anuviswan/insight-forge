@@ -1,4 +1,4 @@
-using Insight.Services.Interfaces.Core;
+﻿using Insight.Services.Interfaces.Core;
 using Insight.WebApi.Services;
 
 namespace Insight.WebApi;
@@ -14,7 +14,7 @@ public class Program
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
 
-                // Use built-in OpenAPI provider (Microsoft.AspNetCore.OpenApi)
+        // Use built-in OpenAPI provider (Microsoft.AspNetCore.OpenApi)
         // Do not register Swashbuckle when using the built-in OpenAPI to avoid type conflicts.
 
         // Use built-in OpenAPI mapping (AddOpenApi/MapOpenApi) for minimal OpenAPI support
@@ -42,7 +42,7 @@ public class Program
         var modules = new IModule[]
         {
             new global::Insight.Services.Ai.Gemini.GeminiModule(),
-            // Add more modules here as needed
+            new global::Insight.Services.Core.Modules.AuthenticationModule(),
         };
 
         foreach (var module in modules)
