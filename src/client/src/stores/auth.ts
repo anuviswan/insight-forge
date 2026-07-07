@@ -1,8 +1,8 @@
-﻿import { defineStore } from ''pinia'';
-import { ref, computed } from ''vue'';
-import { api, type UserProfile } from ''../api'';
+﻿import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
+import { api, type UserProfile } from '../api';
 
-export const useAuthStore = defineStore(''auth'', () => {
+export const useAuthStore = defineStore('auth', () => {
   const user = ref<UserProfile | null>(null);
   const token = ref<string | null>(null);
   const loading = ref(false);
@@ -16,24 +16,24 @@ export const useAuthStore = defineStore(''auth'', () => {
 
   function applyTheme(isDark: boolean) {
     if (isDark) {
-      document.documentElement.classList.add(''dark'');
+      document.documentElement.classList.add('dark');
     } else {
-      document.documentElement.classList.remove(''dark'');
+      document.documentElement.classList.remove('dark');
     }
   }
 
-  async function login(email: string, password?: string, provider?: ''google'' | ''github'') {
+  async function login(email: string, password?: string, provider?: 'google' | 'github') {
     loading.value = true;
     error.value = null;
     try {
       const res = await api.auth.login(email, password, provider);
       token.value = res.token;
       user.value = res.user;
-      localStorage.setItem(''token'', res.token);
-      localStorage.setItem(''user'', JSON.stringify(res.user));
+      localStorage.setItem('token', res.token);
+      localStorage.setItem('user', JSON.stringify(res.user));
       applyTheme(res.user.preferences.darkMode);
     } catch (err: any) {
-      error.value = err.message || ''Login failed'';
+      error.value = err.message || 'Login failed';
       throw err;
     } finally {
       loading.value = false;
@@ -46,9 +46,9 @@ export const useAuthStore = defineStore(''auth'', () => {
       await api.auth.logout();
       token.value = null;
       user.value = null;
-      localStorage.removeItem(''token'');
-      localStorage.removeItem(''user'');
-      document.documentElement.classList.remove(''dark'');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      document.documentElement.classList.remove('dark');
     } finally {
       loading.value = false;
     }
@@ -57,25 +57,25 @@ export const useAuthStore = defineStore(''auth'', () => {
   function toggleDarkMode() {
     if (user.value) {
       user.value.preferences.darkMode = !user.value.preferences.darkMode;
-      localStorage.setItem(''user'', JSON.stringify(user.value));
+      localStorage.setItem('user', JSON.stringify(user.value));
       applyTheme(user.value.preferences.darkMode);
     }
   }
 
-  function updatePreferences(prefs: Partial<UserProfile[''preferences'']>) {
+  function updatePreferences(prefs: Partial<UserProfile['preferences']>) {
     if (user.value) {
       user.value.preferences = { ...user.value.preferences, ...prefs };
-      localStorage.setItem(''user'', JSON.stringify(user.value));
+      localStorage.setItem('user', JSON.stringify(user.value));
       if (prefs.darkMode !== undefined) {
         applyTheme(prefs.darkMode);
       }
     }
   }
 
-  function updateSecurity(sec: Partial<UserProfile[''security'']>) {
+  function updateSecurity(sec: Partial<UserProfile['security']>) {
     if (user.value) {
       user.value.security = { ...user.value.security, ...sec };
-      localStorage.setItem(''user'', JSON.stringify(user.value));
+      localStorage.setItem('user', JSON.stringify(user.value));
     }
   }
 
@@ -84,7 +84,7 @@ export const useAuthStore = defineStore(''auth'', () => {
       user.value.name = name;
       user.value.bio = bio;
       user.value.email = email;
-      localStorage.setItem(''user'', JSON.stringify(user.value));
+      localStorage.setItem('user', JSON.stringify(user.value));
     }
   }
 
