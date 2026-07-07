@@ -1,18 +1,10 @@
 ﻿using Insight.Services.Core.Domain.Entities;
 using Insight.Services.Interfaces.Core;
+using Insight.Services.Core.Modules;
 using Azure.Data.Tables;
 using Microsoft.Extensions.Logging;
 
 namespace Insight.Services.Core.Persistence;
-
-/// <summary>
-/// Wrapper to hold both table clients.
-/// </summary>
-public class TableClientProvider
-{
-    public TableClient UsersTable { get; set; } = null!;
-    public TableClient VerificationsTable { get; set; } = null!;
-}
 
 /// <summary>
 /// Azure Table Storage implementation for user and verification data.

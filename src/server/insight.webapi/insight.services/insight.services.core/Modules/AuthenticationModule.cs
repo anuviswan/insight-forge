@@ -4,6 +4,7 @@ using Insight.Services.Interfaces.Core;
 using Azure.Data.Tables;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Insight.Services.Core.Modules;
 
@@ -32,36 +33,52 @@ public class AuthenticationModule : IModule
         var verificationsTableName = configuration["AzureTableStorage:VerificationTableName"] ?? "emailverifications";
 
         if (string.IsNullOrEmpty(storageConnectionString))
-            throw new InvalidOperationException("AzureTableStorage:ConnectionString not configured. Set environment variable AZURE_STORAGE_CONNECTION_STRING.");
+        {
+            throw new InvalidOperationException(
+                "AzureTableStorage:ConnectionString not configured.\n" +
+                "For development: Use Azure Storage Emulator connection string in appsettings.Development.json\n" +
+                "For production: Set environment variable AZURE_STORAGE_CONNECTION_STRING\n" +
+                "Emulator connection string: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXOU+FxsxvpT1+c=;TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;"
+            );
+        }
 
         // Register Table Client Provider as singleton
         services.AddSingleton(sp =>
         {
-            // Use TableServiceClient to manage table clients
-            var serviceClient = new TableServiceClient(storageConnectionString);
+            var logger = sp.GetRequiredService<ILogger<AuthenticationModule>>();
             
-            // Create tables if they don't exist
             try
             {
-                serviceClient.CreateTableIfNotExistsAsync(usersTableName).Wait();
-                serviceClient.CreateTableIfNotExistsAsync(verificationsTableName).Wait();
+                // Use TableServiceClient to manage table clients
+                var serviceClient = new TableServiceClient(storageConnectionString);
+                
+                // Create tables if they don't exist
+                try
+                {
+                    serviceClient.CreateTableIfNotExistsAsync(usersTableName).Wait();
+                    serviceClient.CreateTableIfNotExistsAsync(verificationsTableName).Wait();
+                    logger.LogInformation("Azure Table Storage tables initialized: {UsersTable}, {VerificationsTable}", usersTableName, verificationsTableName);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Warning: Could not ensure tables exist. They may need to be created manually or permissions may be restricted.");
+                }
+
+                // Get table clients
+                var usersClient = serviceClient.GetTableClient(usersTableName);
+                var verificationsClient = serviceClient.GetTableClient(verificationsTableName);
+
+                return new TableClientProvider
+                {
+                    UsersTable = usersClient,
+                    VerificationsTable = verificationsClient
+                };
             }
             catch (Exception ex)
             {
-                // Log but don't fail startup if tables can't be created
-                // They might be created manually or have permission issues in some environments
-                System.Diagnostics.Debug.WriteLine($"Warning: Could not ensure tables exist: {ex.Message}");
+                logger.LogError(ex, "Failed to initialize Azure Table Storage. Ensure connection string is valid and storage account is accessible.");
+                throw;
             }
-
-            // Get table clients
-            var usersClient = serviceClient.GetTableClient(usersTableName);
-            var verificationsClient = serviceClient.GetTableClient(verificationsTableName);
-
-            return new TableClientProvider
-            {
-                UsersTable = usersClient,
-                VerificationsTable = verificationsClient
-            };
         });
 
         // Register core services
