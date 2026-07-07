@@ -2,6 +2,7 @@
 import { useAuthStore } from "../stores/auth";
 
 // Lazy load route components as per rules
+const Home = () => import("../views/Home.vue");
 const Login = () => import("../views/Login.vue");
 const Register = () => import("../views/Register.vue");
 const VerifyEmail = () => import("../views/VerifyEmail.vue");
@@ -10,6 +11,11 @@ const Summarizer = () => import("../views/Summarizer.vue");
 const Profile = () => import("../views/Profile.vue");
 
 const routes = [
+  {
+    path: "/",
+    name: "Home",
+    component: Home
+  },
   {
     path: "/login",
     name: "Login",
@@ -48,7 +54,7 @@ const routes = [
   },
   {
     path: "/:pathMatch(.*)*",
-    redirect: "/blogger"
+    redirect: "/"
   }
 ];
 
