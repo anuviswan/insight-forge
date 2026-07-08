@@ -304,7 +304,7 @@ try {
     }
 }
 catch {
-    Write-Error-Custom "Deployment failed: $_"
+    Write-Error-Custom ("Deployment failed: " + $_.Exception.Message)
     Cleanup
     exit 1
 }
