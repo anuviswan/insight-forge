@@ -3,6 +3,7 @@ using InsightForge.E2E.Tests.Pages;
 using InsightForge.E2E.Tests.Utilities;
 using Microsoft.Playwright;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using static Microsoft.Playwright.Assertions;
 
 namespace InsightForge.E2E.Tests.Tests.Authentication;
 
