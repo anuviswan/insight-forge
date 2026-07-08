@@ -44,8 +44,14 @@ function Test-Port {
 }
 
 function Get-ProjectRoot {
-    $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-    return Split-Path -Parent $scriptDir
+    $scriptPath = $MyInvocation.PSScriptRoot
+    if (-not $scriptPath) {
+        $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+    }
+    if (-not $scriptPath) {
+        $scriptPath = Get-Location
+    }
+    return Split-Path -Parent $scriptPath
 }
 
 function Start-Server {
