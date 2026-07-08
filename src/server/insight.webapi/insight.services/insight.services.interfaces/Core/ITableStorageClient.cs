@@ -46,4 +46,14 @@ public interface ITableStorageClient
     /// Update a verification token (mark as used, etc).
     /// </summary>
     Task UpdateVerificationTokenAsync(object verification, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Create a new login attempt record.
+    /// </summary>
+    Task CreateLoginAttemptAsync(object attempt, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get login attempts for an email address.
+    /// </summary>
+    Task<List<object>> GetLoginAttemptsAsync(string email, CancellationToken cancellationToken = default);
 }

@@ -9,12 +9,13 @@ using Microsoft.Extensions.Logging;
 namespace Insight.Services.Core.Modules;
 
 /// <summary>
-/// Wrapper to hold both table clients.
+/// Wrapper to hold all table clients.
 /// </summary>
 public class TableClientProvider
 {
     public TableClient UsersTable { get; set; } = null!;
     public TableClient VerificationsTable { get; set; } = null!;
+    public TableClient LoginAttemptsTable { get; set; } = null!;
 }
 
 /// <summary>
@@ -31,6 +32,7 @@ public class AuthenticationModule : IModule
         var storageConnectionString = configuration["AzureTableStorage:ConnectionString"];
         var usersTableName = configuration["AzureTableStorage:UsersTableName"] ?? "users";
         var verificationsTableName = configuration["AzureTableStorage:VerificationTableName"] ?? "emailverifications";
+        var loginAttemptsTableName = configuration["AzureTableStorage:LoginAttemptsTableName"] ?? "loginattempts";
 
         if (string.IsNullOrEmpty(storageConnectionString))
         {
@@ -57,7 +59,8 @@ public class AuthenticationModule : IModule
                 {
                     serviceClient.CreateTableIfNotExistsAsync(usersTableName).Wait();
                     serviceClient.CreateTableIfNotExistsAsync(verificationsTableName).Wait();
-                    logger.LogInformation("Azure Table Storage tables initialized: {UsersTable}, {VerificationsTable}", usersTableName, verificationsTableName);
+                    serviceClient.CreateTableIfNotExistsAsync(loginAttemptsTableName).Wait();
+                    logger.LogInformation("Azure Table Storage tables initialized: {UsersTable}, {VerificationsTable}, {LoginAttemptsTable}", usersTableName, verificationsTableName, loginAttemptsTableName);
                 }
                 catch (Exception ex)
                 {
@@ -67,11 +70,13 @@ public class AuthenticationModule : IModule
                 // Get table clients
                 var usersClient = serviceClient.GetTableClient(usersTableName);
                 var verificationsClient = serviceClient.GetTableClient(verificationsTableName);
+                var loginAttemptsClient = serviceClient.GetTableClient(loginAttemptsTableName);
 
                 return new TableClientProvider
                 {
                     UsersTable = usersClient,
-                    VerificationsTable = verificationsClient
+                    VerificationsTable = verificationsClient,
+                    LoginAttemptsTable = loginAttemptsClient
                 };
             }
             catch (Exception ex)
@@ -86,6 +91,7 @@ public class AuthenticationModule : IModule
         services.AddScoped<IPasswordService, PasswordService>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IEmailService, MockEmailService>();
+        services.AddScoped<ILoginAttemptService, LoginAttemptService>();
         services.AddScoped<IUserService, UserService>();
     }
 }

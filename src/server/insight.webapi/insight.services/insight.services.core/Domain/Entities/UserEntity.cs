@@ -18,4 +18,8 @@ public class UserEntity : BaseEntity
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; }
     public DateTime? LastLoginAt { get; set; }
+    public int FailedLoginAttempts { get; set; }
+    public DateTime? LastFailedLoginAt { get; set; }
+    public bool IsLockedOut { get; set; }
+    public DateTime? LockedOutUntil { get; set; }
 }

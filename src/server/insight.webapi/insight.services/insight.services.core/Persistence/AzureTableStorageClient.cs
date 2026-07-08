@@ -14,6 +14,7 @@ public class AzureTableStorageClient : ITableStorageClient
 {
     private readonly TableClient _usersTable;
     private readonly TableClient _verificationsTable;
+    private readonly TableClient _loginAttemptsTable;
     private readonly ILogger<AzureTableStorageClient> _logger;
 
     public AzureTableStorageClient(
@@ -22,6 +23,7 @@ public class AzureTableStorageClient : ITableStorageClient
     {
         _usersTable = tableClientProvider.UsersTable;
         _verificationsTable = tableClientProvider.VerificationsTable;
+        _loginAttemptsTable = tableClientProvider.LoginAttemptsTable;
         _logger = logger;
     }
 
@@ -156,6 +158,47 @@ public class AzureTableStorageClient : ITableStorageClient
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating verification token");
+            throw;
+        }
+    }
+
+    public async Task CreateLoginAttemptAsync(object attempt, CancellationToken cancellationToken = default)
+    {
+        if (attempt is not LoginAttemptEntity loginAttempt)
+            throw new ArgumentException("Attempt must be LoginAttemptEntity", nameof(attempt));
+
+        try
+        {
+            loginAttempt.CreatedAt = DateTime.UtcNow;
+            await _loginAttemptsTable.AddEntityAsync(loginAttempt, cancellationToken: cancellationToken);
+            _logger.LogInformation("Login attempt recorded for email {Email}", loginAttempt.Email);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating login attempt for email {Email}", loginAttempt.Email);
+            throw;
+        }
+    }
+
+    public async Task<List<object>> GetLoginAttemptsAsync(string email, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var query = _loginAttemptsTable.QueryAsync<LoginAttemptEntity>(
+                a => a.PartitionKey == "LoginAttempts" && a.Email == email,
+                cancellationToken: cancellationToken);
+
+            var results = new List<object>();
+            await foreach (var item in query)
+            {
+                results.Add(item);
+            }
+
+            return results;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving login attempts for email {Email}", email);
             throw;
         }
     }
