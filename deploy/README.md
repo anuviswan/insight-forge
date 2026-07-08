@@ -94,7 +94,7 @@ deploy.bat
 **Examples:**
 
 ```powershell
-# Run with UI visible
+# Run with UI visible (disable headless mode)
 .\deploy.ps1 -Headless $false
 
 # Skip tests
@@ -111,8 +111,7 @@ deploy.bat
 
 ```bash
 --skip-tests         # Skip running tests after deployment
---headless          # Run tests in headless mode (default)
---ui                # Run tests with UI visible
+--headless          # Disable headless mode (run with UI visible)
 --server-port 5000  # Backend server port (default: 5000)
 --client-port 5173  # Frontend server port (default: 5173)
 --timeout 60        # Service startup timeout (default: 60)
@@ -121,8 +120,8 @@ deploy.bat
 **Examples:**
 
 ```bash
-# Run with UI visible
-./deploy.sh --ui
+# Run with UI visible (disable headless mode)
+./deploy.sh --headless
 
 # Skip tests
 ./deploy.sh --skip-tests

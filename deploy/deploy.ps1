@@ -10,8 +10,27 @@
     3. Waits for services to be ready
     4. Runs Playwright E2E tests
 
+.PARAMETER SkipTests
+    Skip running tests after deployment
+
+.PARAMETER Headless
+    Run tests in headless mode (default: $true)
+    Use -Headless $false to see the browser while tests run
+
+.PARAMETER ServerPort
+    Backend server port (default: 5000)
+
+.PARAMETER ClientPort
+    Frontend server port (default: 5173)
+
+.PARAMETER TimeoutSeconds
+    Service startup timeout in seconds (default: 60)
+
 .EXAMPLE
     .\deploy.ps1
+
+.EXAMPLE
+    .\deploy.ps1 -Headless $false
 
 .NOTES
     Requires:

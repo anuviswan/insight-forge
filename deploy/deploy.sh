@@ -14,8 +14,7 @@
 #
 # Options:
 #   --skip-tests      Skip running tests
-#   --headless        Run tests in headless mode (default)
-#   --ui              Run tests with UI visible
+#   --headless        Disable headless mode (run with UI visible)
 #   --server-port     Backend server port (default: 5000)
 #   --client-port     Frontend server port (default: 5173)
 #   --timeout         Timeout for service startup in seconds (default: 60)
@@ -47,10 +46,6 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --headless)
-            HEADLESS=true
-            shift
-            ;;
-        --ui)
             HEADLESS=false
             shift
             ;;

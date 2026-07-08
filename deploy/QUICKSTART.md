@@ -40,7 +40,7 @@ chmod +x deploy.sh
 .\deploy.ps1 -Headless $false
 
 # Linux/macOS
-./deploy.sh --ui
+./deploy.sh --headless
 ```
 
 ### Use custom ports
