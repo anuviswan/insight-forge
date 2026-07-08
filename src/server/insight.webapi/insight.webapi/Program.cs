@@ -169,9 +169,23 @@ public class Program
     {
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
 
+        // Configure LoginAttemptOptions from appsettings with defaults
+        services.Configure<global::Insight.Services.Core.Options.LoginAttemptOptions>(options =>
+        {
+            var section = configuration.GetSection(global::Insight.Services.Core.Options.LoginAttemptOptions.SectionName);
+            if (section.Exists())
+            {
+                if (int.TryParse(section["MaxFailedAttempts"], out var max))
+                    options.MaxFailedAttempts = max;
+                if (int.TryParse(section["LockoutDurationMinutes"], out var lockout))
+                    options.LockoutDurationMinutes = lockout;
+            }
+        });
+
         var storageConnectionString = configuration["AzureTableStorage:ConnectionString"];
         var usersTableName = configuration["AzureTableStorage:UsersTableName"] ?? "users";
         var verificationsTableName = configuration["AzureTableStorage:VerificationTableName"] ?? "emailverifications";
+        var loginAttemptsTableName = configuration["AzureTableStorage:LoginAttemptsTableName"] ?? "loginattempts";
 
         if (string.IsNullOrEmpty(storageConnectionString))
         {
@@ -195,7 +209,8 @@ public class Program
                 {
                     serviceClient.CreateTableIfNotExistsAsync(usersTableName).Wait();
                     serviceClient.CreateTableIfNotExistsAsync(verificationsTableName).Wait();
-                    logger.LogInformation("Azure Table Storage tables initialized: {UsersTable}, {VerificationsTable}", usersTableName, verificationsTableName);
+                    serviceClient.CreateTableIfNotExistsAsync(loginAttemptsTableName).Wait();
+                    logger.LogInformation("Azure Table Storage tables initialized: {UsersTable}, {VerificationsTable}, {LoginAttemptsTable}", usersTableName, verificationsTableName, loginAttemptsTableName);
                 }
                 catch (Exception ex)
                 {
@@ -204,11 +219,13 @@ public class Program
 
                 var usersClient = serviceClient.GetTableClient(usersTableName);
                 var verificationsClient = serviceClient.GetTableClient(verificationsTableName);
+                var loginAttemptsClient = serviceClient.GetTableClient(loginAttemptsTableName);
 
                 return new global::Insight.Services.Core.Modules.TableClientProvider
                 {
                     UsersTable = usersClient,
-                    VerificationsTable = verificationsClient
+                    VerificationsTable = verificationsClient,
+                    LoginAttemptsTable = loginAttemptsClient
                 };
             }
             catch (Exception ex)
@@ -222,6 +239,7 @@ public class Program
         services.AddScoped<global::Insight.Services.Interfaces.Core.IPasswordService, global::Insight.Services.Core.Domain.Services.PasswordService>();
         services.AddScoped<global::Insight.Services.Interfaces.Core.IJwtTokenService, global::Insight.Services.Core.Domain.Services.JwtTokenService>();
         services.AddScoped<global::Insight.Services.Interfaces.Core.IEmailService, global::Insight.Services.Core.Domain.Services.MockEmailService>();
+        services.AddScoped<global::Insight.Services.Interfaces.Core.ILoginAttemptService, global::Insight.Services.Core.Domain.Services.LoginAttemptService>();
         services.AddScoped<global::Insight.Services.Interfaces.Core.IUserService, global::Insight.Services.Core.Domain.Services.UserService>();
     }
 }
