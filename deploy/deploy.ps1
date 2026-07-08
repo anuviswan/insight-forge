@@ -14,8 +14,8 @@
     Skip running tests after deployment
 
 .PARAMETER Headless
-    Run tests in headless mode (default: $true)
-    Use -Headless $false to see the browser while tests run
+    Run tests in headless mode (default: $false = UI visible)
+    Use -Headless $true to run without UI visible
 
 .PARAMETER ServerPort
     Backend server port (default: 5000)
@@ -41,7 +41,7 @@
 
 param(
     [switch]$SkipTests = $false,
-    [switch]$Headless = $true,
+    [bool]$Headless = $false,
     [int]$ServerPort = 5000,
     [int]$ClientPort = 5173,
     [int]$TimeoutSeconds = 60

@@ -21,11 +21,11 @@ One-click deployment and testing for Insight Forge. This script automates the en
 # Navigate to deploy folder
 cd .\deploy
 
-# Run with default settings (headless tests)
+# Run with default settings (browser visible)
 .\deploy.ps1
 
-# Run with visible browser
-.\deploy.ps1 -Headless $false
+# Run without browser (headless mode)
+.\deploy.ps1 -Headless $true
 
 # Run without tests
 .\deploy.ps1 -SkipTests
@@ -35,7 +35,7 @@ cd .\deploy
 
 ```powershell
 -SkipTests           # Skip running tests after deployment
--Headless $true      # Run tests in headless mode (default: $true)
+-Headless $true      # Run tests in headless mode (default: $false = UI visible)
 -ServerPort 5000     # Backend server port (default: 5000)
 -ClientPort 5173     # Frontend server port (default: 5173)
 -TimeoutSeconds 60   # Service startup timeout (default: 60)
@@ -44,8 +44,11 @@ cd .\deploy
 ## Examples
 
 ```powershell
-# Run with UI visible (disable headless mode)
-.\deploy.ps1 -Headless $false
+# Default - run with browser visible
+.\deploy.ps1
+
+# Hide browser (headless mode)
+.\deploy.ps1 -Headless $true
 
 # Skip tests
 .\deploy.ps1 -SkipTests
@@ -57,7 +60,7 @@ cd .\deploy
 .\deploy.ps1 -TimeoutSeconds 120
 
 # Everything combined
-.\deploy.ps1 -Headless $false -ServerPort 3000 -ClientPort 3001 -TimeoutSeconds 120
+.\deploy.ps1 -Headless $true -ServerPort 3000 -ClientPort 3001 -TimeoutSeconds 120
 ```
 
 ## What The Script Does

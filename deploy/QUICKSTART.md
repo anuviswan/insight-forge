@@ -10,14 +10,14 @@ cd deploy
 That's it! The script will:
 1. ✅ Start the backend server (port 5000)
 2. ✅ Start the frontend dev server (port 5173)
-3. ✅ Run all E2E tests with Playwright
+3. ✅ Run all E2E tests with Playwright (with visible browser by default)
 4. ✅ Keep services running for manual testing
 
 ## ⚙️ Common Options
 
-### See the browser while tests run
+### Hide browser (run headless)
 ```powershell
-.\deploy.ps1 -Headless $false
+.\deploy.ps1 -Headless $true
 ```
 
 ### Run without tests (just deploy)
