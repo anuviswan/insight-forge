@@ -75,7 +75,7 @@ function Start-Server {
         Write-Success "Server build successful"
 
         Write-Info "Starting server process..."
-        $script:ServerProcessId = (Start-Process -FilePath "dotnet" -ArgumentList "run" -WindowStyle Hidden -PassThru -NoNewWindow).Id
+        $script:ServerProcessId = (Start-Process -FilePath "dotnet" -ArgumentList "run" -WindowStyle Hidden -PassThru).Id
 
         if (Test-Port -Port $ServerPort -Service "Backend Server") {
             return $true
@@ -109,7 +109,7 @@ function Start-Client {
         }
 
         Write-Info "Starting dev server..."
-        $script:ClientProcessId = (Start-Process -FilePath "npm" -ArgumentList "run", "dev" -WindowStyle Hidden -PassThru -NoNewWindow).Id
+        $script:ClientProcessId = (Start-Process -FilePath "npm" -ArgumentList "run", "dev" -WindowStyle Hidden -PassThru).Id
 
         if (Test-Port -Port $ClientPort -Service "Frontend Server") {
             return $true
