@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
@@ -18,7 +18,7 @@ async function handleLogin() {
     errorMsg.value = 'Please enter email address';
     return;
   }
-  
+
   errorMsg.value = '';
   try {
     await authStore.login(email.value, password.value);
@@ -36,6 +36,10 @@ async function handleSocialLogin(provider: 'google' | 'github') {
   } catch (err: any) {
     errorMsg.value = `Login with ${provider} failed.`;
   }
+}
+
+function handleRegisterLink() {
+  router.push({ name: 'Register' });
 }
 </script>
 
@@ -139,7 +143,7 @@ async function handleSocialLogin(provider: 'google' | 'github') {
       </div>
 
       <p class="signup-text">
-        Don't have an account? <a href="#" class="signup-link" @click.prevent>Sign up</a>
+        Don't have an account? <a href="#" class="signup-link" @click.prevent="handleRegisterLink">Sign up</a>
       </p>
     </div>
   </div>

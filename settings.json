@@ -4,16 +4,69 @@
       "Read",
       "Edit",
       "Write",
-      "Bash(git:*)",
-      "Bash(gh issue view:*)",
-      "Bash(dotnet:*)",
-      "Bash(npm:*)",
-      "Bash(pnpm:*)"
+
+      "Bash(git:status)",
+      "Bash(git:diff)",
+      "Bash(git:log:*)",
+      "Bash(git:show:*)",
+      "Bash(git:branch)",
+      "Bash(git:fetch)",
+      "Bash(git:add:*)",
+      "Bash(git:commit:*)",
+      "Bash(git:merge:*)",
+
+      "Bash(dotnet:restore)",
+      "Bash(dotnet:build:*)",
+      "Bash(dotnet:test:*)",
+      "Bash(dotnet:run:*)",
+      "Bash(dotnet:clean:*)",
+      "Bash(dotnet:format:*)",
+      "Bash(dotnet:new:*)",
+      "Bash(dotnet:add:*)",
+      "Bash(dotnet:list:*)",
+      "Bash(dotnet:sln:*)",
+      "Bash(dotnet:tool:*)",
+      "Bash(dotnet:ef:*)",
+
+      "Bash(npm:install)",
+      "Bash(npm:run:*)",
+      "Bash(npm:test:*)",
+      "Bash(npm:lint:*)",
+
+      "Bash(pnpm:install)",
+      "Bash(pnpm:run:*)",
+
+      "Bash(npx:*)",
+      "Bash(node:*)",
+      "Bash(vite:*)",
+      "Bash(eslint:*)",
+      "Bash(prettier:*)",
+
+      "Bash(gh:pr:*)",
+      "Bash(gh:api:*)"
     ],
-    "deny": [
-      "Read(**/.env)",
-      "Read(**/secrets/**)",
-      "Bash(rm -rf:*)"
+
+    "ask": [
+      "Bash(git:rebase:*)",
+      "Bash(git:push:*)",
+      "Bash(git:pull:*)",
+      "Bash(git:checkout:*)",
+      "Bash(git:switch:*)",
+      "Bash(git:reset:*)",
+      "Bash(git:clean:*)",
+
+      "Bash(docker:*)",
+      "Bash(docker-compose:*)",
+      "Bash(az:*)",
+      "Bash(terraform:*)",
+      "Bash(kubectl:*)",
+
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+
+      "Bash(rm:*)",
+      "Bash(del:*)",
+      "Bash(rmdir:*)"
     ]
   }
 }

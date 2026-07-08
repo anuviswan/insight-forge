@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia';
+﻿import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api, type UserProfile } from '../api';
 
@@ -10,20 +10,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!token.value);
 
-  // Initialize from localStorage if available (to persist mock sessions)
-  const savedToken = localStorage.getItem('token');
-  const savedUser = localStorage.getItem('user');
-  if (savedToken && savedUser) {
-    token.value = savedToken;
-    try {
-      user.value = JSON.parse(savedUser);
-      // Sync theme on load
-      applyTheme(user.value?.preferences.darkMode ?? false);
-    } catch {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-    }
-  }
+  // Note: We do NOT restore from localStorage for mock sessions.
+  // This ensures users can always access login/register pages.
+  // In production with real auth, you would restore here.
 
   function applyTheme(isDark: boolean) {
     if (isDark) {

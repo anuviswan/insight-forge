@@ -1,40 +1,60 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import { useAuthStore } from '../stores/auth';
+﻿import { createRouter, createWebHistory } from "vue-router";
+import { useAuthStore } from "../stores/auth";
 
 // Lazy load route components as per rules
-const Login = () => import('../views/Login.vue');
-const Blogger = () => import('../views/Blogger.vue');
-const Summarizer = () => import('../views/Summarizer.vue');
-const Profile = () => import('../views/Profile.vue');
+const Home = () => import("../views/Home.vue");
+const Login = () => import("../views/Login.vue");
+const Register = () => import("../views/Register.vue");
+const VerifyEmail = () => import("../views/VerifyEmail.vue");
+const Blogger = () => import("../views/Blogger.vue");
+const Summarizer = () => import("../views/Summarizer.vue");
+const Profile = () => import("../views/Profile.vue");
 
 const routes = [
   {
-    path: '/login',
-    name: 'Login',
+    path: "/",
+    name: "Home",
+    component: Home
+  },
+  {
+    path: "/login",
+    name: "Login",
     component: Login,
     meta: { requiresGuest: true }
   },
   {
-    path: '/blogger',
-    name: 'Blogger',
+    path: "/register",
+    name: "Register",
+    component: Register,
+    meta: { requiresGuest: true }
+  },
+  {
+    path: "/verify-email",
+    name: "VerifyEmail",
+    component: VerifyEmail,
+    meta: { requiresGuest: true }
+  },
+  {
+    path: "/blogger",
+    name: "Blogger",
     component: Blogger,
     meta: { requiresAuth: true }
   },
   {
-    path: '/summariser',
-    name: 'Summariser',
+    path: "/summariser",
+    name: "Summariser",
     component: Summarizer,
     meta: { requiresAuth: true }
   },
   {
-    path: '/profile',
-    name: 'Profile',
+    path: "/profile",
+    name: "Profile",
     component: Profile,
     meta: { requiresAuth: true }
   },
   {
-    path: '/:pathMatch(.*)*',
-    redirect: '/blogger'
+    path: "/:pathMatch(.*)*",
+    redirect: "/"
   }
 ];
 
@@ -49,11 +69,12 @@ router.beforeEach((to, _from, next) => {
   const isAuthenticated = authStore.isAuthenticated;
 
   if (to.meta.requiresAuth && !isAuthenticated) {
-    next({ name: 'Login' });
+    next({ name: "Login" });
   } else if (to.meta.requiresGuest && isAuthenticated) {
-    next({ name: 'Blogger' });
+    next({ name: "Blogger" });
   } else {
     next();
   }
 });
+
 export default router;

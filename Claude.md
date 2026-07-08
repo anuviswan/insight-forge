@@ -24,8 +24,7 @@ The platform separates business capabilities from AI provider implementations, a
 
 ```
 src/server : Web API
-src/client : Client 
-
+src/client : Client
 ```
 
 # Definition of Done
@@ -33,7 +32,14 @@ src/client : Client
 A feature is complete when:
 
 - implementation is complete
+- Solution can be build without errors or warnings
 - tests pass
 - public APIs are documented
 - architecture remains consistent
 - no unnecessary coupling is introduced
+
+# Commit
+
+- Allow commits should follow conventional commits format
+- All solutions should compile and build without any error/warnings.
+- All Unit tests should pass
