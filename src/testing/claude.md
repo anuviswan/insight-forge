@@ -2,203 +2,243 @@
 
 ## Purpose
 
-Generate high-quality end-to-end UI automation tests for the Insight Forge application using Playwright for .NET.
+Generate production-quality end-to-end UI automation tests for Insight Forge using Playwright for .NET and MSTest.
 
-Tests should be maintainable, readable, deterministic, and easy to extend.
+The primary goals are:
+
+- Readability
+- Maintainability
+- Reliability
+- Fast execution
+- Deterministic results
 
 ---
 
-# Technology
+# Technology Stack
 
 - Language: C#
-- Test Framework: xUnit
+- Framework: MSTest
 - UI Automation: Microsoft Playwright
 - Pattern: Page Object Model (POM)
-- Assertions: Playwright Assertions
-- Async: Always use async/await
+- Assertions: Microsoft.Playwright.Assertions
+- Async Programming: async/await
 
 ---
 
 # General Principles
 
-- NEVER generate recorded Playwright code.
-- NEVER generate long procedural tests.
-- Prefer reusable page objects.
-- Keep tests focused on one business scenario.
-- Generate production-quality code.
-- Tests must be deterministic.
-- Avoid arbitrary delays.
+Always generate clean, maintainable automation code.
 
-DO NOT use:
+DO:
 
-```
-WaitForTimeout()
-Thread.Sleep()
-Task.Delay()
-```
+- Follow SOLID principles.
+- Keep tests independent.
+- Keep page objects focused.
+- Reuse existing components.
+- Prefer composition over duplication.
+- Write business-readable tests.
 
-Use Playwright waits instead.
+DO NOT:
+
+- Generate Playwright Recorder code.
+- Use procedural automation.
+- Duplicate locators.
+- Duplicate helper methods.
+- Swallow exceptions.
 
 ---
 
 # Test Structure
 
-Each test should follow:
+Each test should follow Arrange → Act → Assert.
 
+Example:
+
+```text
 Arrange
+    Login as Administrator
 
 Act
+    Create a new Insight
 
 Assert
-
-Keep assertions grouped at the end whenever possible.
-
-Example
-
-```
-Login
-Create Insight
-Verify Insight appears
+    Verify the Insight appears in the grid
 ```
 
-NOT
-
-```
-Login
-Assert
-
-Create
-Assert
-
-Navigate
-Assert
-```
-
-unless intermediate validation is required.
+Avoid mixing assertions throughout the test unless validating an intermediate step.
 
 ---
 
-# Naming
+# MSTest Conventions
 
-Test classes
+Use:
+
+- `[TestClass]`
+- `[TestMethod]`
+- `[TestInitialize]`
+- `[TestCleanup]`
+- `[ClassInitialize]`
+- `[ClassCleanup]`
+
+Prefer asynchronous test methods.
+
+Example:
+
+```csharp
+[TestMethod]
+public async Task Should_Create_New_Insight()
+{
+}
+```
+
+Never use synchronous Playwright APIs.
+
+---
+
+# Naming Conventions
+
+## Test Classes
 
 ```
 LoginTests
-InsightCreationTests
 DashboardTests
+InsightTests
+ReportTests
+SettingsTests
 ```
 
-Test methods
+## Test Methods
 
 ```
-Should_Login_With_Valid_Credentials()
+Should_Login_With_Valid_Credentials
 
-Should_Show_Error_For_Invalid_Login()
+Should_Reject_Invalid_Login
 
-Should_Create_New_Insight()
+Should_Create_New_Insight
 
-Should_Delete_Report()
+Should_Delete_Report
 ```
 
-Use descriptive names.
+Names should describe expected behaviour.
 
 ---
 
 # Page Object Model
 
-Every screen must have its own Page Object.
+Every page must have its own Page Object.
 
-Example
+Example:
 
 ```
 LoginPage
-
 DashboardPage
-
 InsightPage
-
 ReportPage
-
 SettingsPage
 ```
 
-Page Objects should
+Page Objects should expose business operations.
 
-- expose business operations
-- expose element locators only when necessary
-- hide implementation details
+Good:
 
-Good
-
-```
+```csharp
 await loginPage.LoginAsync(user);
 ```
 
-Bad
+Bad:
 
-```
-await page.GetByRole(...)
-
-await page.ClickAsync(...)
-
-await page.FillAsync(...)
+```csharp
+await page.GetByRole(...).ClickAsync();
+await page.FillAsync(...);
 ```
 
-inside test methods.
+Low-level Playwright code belongs inside Page Objects.
+
+---
+
+# Component Objects
+
+Reusable UI widgets should be Component Objects.
+
+Examples:
+
+```
+NavigationMenu
+TopToolbar
+DataGrid
+ToastNotification
+ConfirmationDialog
+Pagination
+```
+
+Components may be shared across multiple pages.
 
 ---
 
 # Locators
 
-Prefer the following order:
+Use the following priority:
 
 1. data-testid
-2. getByRole
-3. getByLabel
-4. getByPlaceholder
-5. getByText
+2. GetByRole
+3. GetByLabel
+4. GetByPlaceholder
+5. GetByText
 6. CSS selectors
-7. XPath (avoid)
 
-Never generate brittle CSS selectors.
+Avoid XPath.
 
----
-
-# Assertions
-
-Use Playwright assertions.
-
-Example
-
-```
-await Expect(page).ToHaveURLAsync(...)
-
-await Expect(locator).ToContainTextAsync(...)
-
-await Expect(locator).ToBeVisibleAsync()
-```
-
-Avoid manual polling.
+Never use fragile selectors based on nested div structures.
 
 ---
 
-# Waiting
+# Waiting Strategy
 
-Always wait for UI state instead of sleeping.
+Never use:
 
-Prefer
+```csharp
+Thread.Sleep()
 
+Task.Delay()
+
+WaitForTimeoutAsync()
 ```
-WaitForURLAsync
 
-WaitForLoadStateAsync
+Instead use:
+
+```csharp
+WaitForURLAsync()
+
+WaitForLoadStateAsync()
 
 Expect(locator).ToBeVisibleAsync()
 
 Expect(locator).ToBeHiddenAsync()
 
 Expect(locator).ToContainTextAsync()
+
+Expect(locator).ToHaveValueAsync()
 ```
+
+Always wait for application state.
+
+---
+
+# Assertions
+
+Use Playwright Assertions.
+
+Preferred:
+
+```csharp
+await Expect(locator).ToBeVisibleAsync();
+
+await Expect(locator).ToContainTextAsync();
+
+await Expect(page).ToHaveURLAsync(...);
+```
+
+Avoid manual polling.
 
 ---
 
@@ -208,23 +248,23 @@ Authentication should be reusable.
 
 Prefer:
 
-- authenticated browser state
-- shared login helper
-- fixture
+- Shared login helper
+- StorageState
+- Authenticated browser context
 
-Do not repeat login logic in every test.
+Avoid logging in inside every test.
 
 ---
 
 # Test Isolation
 
-Every test must be independent.
+Every test must:
 
-Tests should
+- Create its own data
+- Clean up its own data where appropriate
+- Never depend on another test
 
-- create their own data
-- clean up their own data when needed
-- never depend on execution order
+Tests must execute successfully in any order.
 
 ---
 
@@ -232,179 +272,195 @@ Tests should
 
 Never hardcode reusable identifiers.
 
-Generate unique names.
+Generate unique data.
 
-Example
+Example:
 
+```csharp
+var insightName = $"Insight-{Guid.NewGuid()}";
 ```
-Insight
-Insight-{Guid.NewGuid()}
-```
 
-Prefer helper factories.
+Prefer dedicated TestData helper classes.
 
 ---
 
 # Browser Context
 
-Each test should use a fresh BrowserContext unless intentionally testing persistence.
+Each test should execute in a fresh BrowserContext unless testing persistence.
 
-Avoid shared mutable state.
-
----
-
-# Error Handling
-
-Do not swallow exceptions.
-
-Let Playwright produce meaningful failure messages.
-
----
-
-# Screenshots
-
-Capture screenshots only on failure.
-
-Use Playwright tracing where appropriate.
-
-Enable
-
-- Trace
-- Video (optional)
-- Screenshot on failure
-
----
-
-# File Organization
-
-Organize tests by feature.
-
-Example
-
-```
-Tests/
-    Authentication/
-    Dashboard/
-    Insights/
-    Reports/
-    Settings/
-
-Pages/
-
-Components/
-
-Fixtures/
-
-Utilities/
-
-TestData/
-```
-
----
-
-# Components
-
-Reusable UI widgets should become Components instead of Page Objects.
-
-Examples
-
-```
-NavigationMenu
-
-TopToolbar
-
-ConfirmationDialog
-
-ToastNotification
-
-DataGrid
-
-Pagination
-```
+Never share mutable state between tests.
 
 ---
 
 # Fixtures
 
-Use xUnit fixtures for
+Create reusable base classes for common setup.
 
-- Browser
-- Authentication
-- Test Server
-- Shared configuration
+Examples:
 
-Avoid duplicate setup code.
+```
+PlaywrightTestBase
+
+AuthenticatedTestBase
+
+AdminTestBase
+```
+
+Avoid duplicated initialization logic.
+
+---
+
+# Project Structure
+
+```
+Playwright
+
+    Pages/
+
+    Components/
+
+    Tests/
+
+        Authentication/
+
+        Dashboard/
+
+        Insights/
+
+        Reports/
+
+        Settings/
+
+    Fixtures/
+
+    Utilities/
+
+    TestData/
+
+    Helpers/
+```
+
+Organize tests by feature.
 
 ---
 
 # Configuration
 
-Read configuration from
+Read configuration from:
 
 - appsettings.json
-- environment variables
+- appsettings.Development.json
+- Environment Variables
 
-Never hardcode
+Never hardcode:
 
 - URLs
-- passwords
-- API keys
+- Credentials
+- API Keys
+
+---
+
+# Screenshots & Tracing
+
+Enable:
+
+- Trace on failure
+- Screenshot on failure
+
+Video recording should be configurable.
+
+Do not capture screenshots during successful execution unless explicitly required.
 
 ---
 
 # Accessibility
 
-Whenever practical, use semantic locators.
+Prefer semantic locators.
 
-Example
+Use:
 
-```
-GetByRole
+```csharp
+GetByRole()
 
-GetByLabel
+GetByLabel()
 ```
 
 This improves test stability.
 
 ---
 
-# Test Quality
+# Error Handling
 
-Every generated test should be
+Allow Playwright exceptions to propagate naturally.
 
-- deterministic
-- readable
-- maintainable
-- isolated
-- reusable
+Do not suppress failures.
 
-The generated code should resemble code written by an experienced automation engineer.
+Avoid unnecessary try/catch blocks.
+
+---
+
+# Code Quality
+
+Generated code should:
+
+- Follow existing project conventions.
+- Reuse existing Page Objects.
+- Extend existing Components.
+- Avoid duplication.
+- Use descriptive variable names.
+- Keep methods small.
 
 ---
 
 # AI Expectations
 
-When generating tests:
+Before generating code:
 
-- Reuse existing Page Objects whenever possible.
-- Do not duplicate helper methods.
-- Extend existing page objects instead of creating similar ones.
-- If an element already exists in a page object, reuse it.
-- Keep page objects small and cohesive.
-- Ask questions if required UI behavior is ambiguous.
-- Never assume element IDs, test IDs, routes, or page structure if they are not available.
-- If the implementation is unclear, request the relevant Razor/Vue component or HTML before generating automation.
-- Prefer business-readable test steps over low-level UI interactions.
+- Search for existing Page Objects.
+- Search for existing Components.
+- Search for helper methods.
+- Search for similar tests.
+
+Reuse existing implementations whenever possible.
+
+Never create duplicate abstractions.
+
+If required information is missing:
+
+- Ask for the page HTML.
+- Ask for Razor/Vue component markup.
+- Ask for screenshots if locator selection is ambiguous.
+
+Do not invent:
+
+- data-testid values
+- URLs
+- CSS selectors
+- DOM structure
 
 ---
 
 # Insight Forge Conventions
 
-When writing automation:
+Treat the application using business terminology.
 
-- Treat Insights, Reports, Dashboards, and Settings as business concepts.
-- Validate user-visible behavior rather than implementation details.
-- Verify success messages, validation messages, and navigation where applicable.
-- Prefer assertions based on visible UI state instead of internal values.
-- Keep tests resilient to UI layout changes by relying on semantic locators and data-testid attributes.
-- When new functionality is added, first determine whether an existing Page Object or Component should be extended before creating new classes.
+Examples:
+
+- Insight
+- Dashboard
+- Report
+- Widget
+- User
+- Settings
+
+Tests should validate business behaviour rather than implementation details.
+
+Verify:
+
+- Success messages
+- Validation messages
+- Navigation
+- User-visible state
+- Data persistence where applicable
+
+Avoid asserting implementation-specific details unless explicitly requested.
