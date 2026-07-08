@@ -5,7 +5,8 @@ public record RegistrationResponse(
     string? UserId,
     string Message,
     string? ErrorCode,
-    List<string> ValidationErrors)
+    List<string> ValidationErrors,
+    string? VerificationToken = null)
 {
-    public RegistrationResponse() : this(false, null, string.Empty, null, new()) { }
+    public RegistrationResponse() : this(false, null, string.Empty, null, new(), null) { }
 }

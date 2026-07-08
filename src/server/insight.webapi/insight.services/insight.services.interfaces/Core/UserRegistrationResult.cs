@@ -7,4 +7,5 @@ public class UserRegistrationResult
     public string Message { get; set; } = string.Empty;
     public string? ErrorCode { get; set; }
     public List<string> ValidationErrors { get; set; } = new();
+    public string? VerificationToken { get; set; }
 }

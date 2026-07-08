@@ -17,6 +17,7 @@ const validationErrors = ref<string[]>([]);
 const successMsg = ref("");
 
 const passwordStrength = ref(0);
+const verificationToken = ref("");
 
 function calculatePasswordStrength(pwd: string): number {
   let strength = 0;
@@ -61,15 +62,27 @@ async function handleRegister(): Promise<void> {
 
   try {
     const result = await api.auth.register(email.value, password.value);
-    
+
     if (result.success) {
       successMsg.value = result.message || "Registration successful! Check your email to verify your account.";
+
+      // Store verification token if provided (development mode)
+      if (result.verificationToken) {
+        verificationToken.value = result.verificationToken;
+        successMsg.value += "\n\n[DEV] Verification token: " + result.verificationToken;
+      }
+
       email.value = "";
       password.value = "";
       confirmPassword.value = "";
-      
+
       setTimeout(() => {
-        router.push({ name: "VerifyEmail" });
+        // Pass token as query parameter if available
+        if (result.verificationToken) {
+          router.push({ name: "VerifyEmail", query: { token: result.verificationToken } });
+        } else {
+          router.push({ name: "VerifyEmail" });
+        }
       }, 2000);
     } else {
       if (result.errorCode === "DUPLICATE_EMAIL") {

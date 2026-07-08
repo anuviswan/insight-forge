@@ -1,7 +1,7 @@
 ﻿using Insight.Services.Core.Domain.Entities;
 using Insight.Services.Interfaces.Core;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Security.Cryptography;
 
 namespace Insight.Services.Core.Domain.Services;
 
@@ -15,18 +15,21 @@ public class UserService : IUserService
     private readonly IPasswordService _passwordService;
     private readonly IEmailService _emailService;
     private readonly ILogger<UserService> _logger;
+    private readonly IHostEnvironment _environment;
     private const int VerificationTokenExpiryHours = 24;
 
     public UserService(
         ITableStorageClient storage,
         IPasswordService passwordService,
         IEmailService emailService,
-        ILogger<UserService> logger)
+        ILogger<UserService> logger,
+        IHostEnvironment environment)
     {
         _storage = storage;
         _passwordService = passwordService;
         _emailService = emailService;
         _logger = logger;
+        _environment = environment;
     }
 
     /// <summary>
@@ -113,12 +116,21 @@ public class UserService : IUserService
 
             _logger.LogInformation("User registered successfully: {UserId} ({Email})", userId, request.Email);
 
-            return new UserRegistrationResult
+            // In development, include the verification token for testing
+            var result = new UserRegistrationResult
             {
                 Success = true,
                 UserId = userId,
-                Message = "Registration successful. Please check your email to verify your account."
+                Message = "Registration successful. Please check your email to verify your account.",
+                VerificationToken = _environment.IsDevelopment() ? verificationToken : null
             };
+
+            if (_environment.IsDevelopment())
+            {
+                _logger.LogInformation("Development mode: Verification token for {Email}: {Token}", request.Email, verificationToken);
+            }
+
+            return result;
         }
         catch (Exception ex)
         {

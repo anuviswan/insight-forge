@@ -60,7 +60,8 @@ public class AuthController : ControllerBase
                 UserId = result.UserId,
                 Message = result.Message,
                 ErrorCode = result.ErrorCode,
-                ValidationErrors = result.ValidationErrors
+                ValidationErrors = result.ValidationErrors,
+                VerificationToken = result.VerificationToken
             });
         }
 

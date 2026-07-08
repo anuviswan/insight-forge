@@ -130,8 +130,27 @@ function handleLoginClick(): void {
           </svg>
         </div>
         <h2 class="verify-title">Verify Your Email</h2>
-        <p class="verify-subtitle">{{ errorMsg }}</p>
-        <button class="btn btn-primary" @click="handleLoginClick">Go to Login</button>
+        <p class="verify-subtitle">Enter your verification token below</p>
+
+        <div class="input-group">
+          <input
+            v-model="token"
+            type="text"
+            class="verify-input"
+            placeholder="Paste your verification token here"
+            @keyup.enter="verifyEmail"
+            :disabled="isVerifying"
+          />
+        </div>
+
+        <p v-if="errorMsg" class="error-message">{{ errorMsg }}</p>
+
+        <div class="button-group">
+          <button class="btn btn-primary" @click="verifyEmail" :disabled="isVerifying || !token">
+            {{ isVerifying ? "Verifying..." : "Verify Email" }}
+          </button>
+          <button class="btn btn-secondary" @click="handleLoginClick">Go to Login</button>
+        </div>
       </div>
     </div>
   </div>
@@ -255,10 +274,47 @@ function handleLoginClick(): void {
   margin-bottom: var(--space-lg);
 }
 
+.input-group {
+  width: 100%;
+  margin-bottom: var(--space-md);
+}
+
+.verify-input {
+  width: 100%;
+  padding: var(--space-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-family: monospace;
+  transition: border-color 0.2s;
+}
+
+.verify-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.verify-input:disabled {
+  background-color: var(--bg-disabled);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.error-message {
+  color: #ef4444;
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-md);
+  width: 100%;
+}
+
 .button-group {
   display: flex;
   gap: var(--space-md);
   margin-top: var(--space-md);
+  width: 100%;
 }
 
 .btn {
