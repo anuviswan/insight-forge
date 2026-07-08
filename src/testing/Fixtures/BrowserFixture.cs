@@ -1,9 +1,8 @@
 using Microsoft.Playwright;
-using Xunit;
 
 namespace InsightForge.E2E.Tests.Fixtures;
 
-public class BrowserFixture : IAsyncLifetime
+public class BrowserFixture
 {
     private readonly Configuration.TestConfiguration _configuration;
     private IBrowser? _browser;
