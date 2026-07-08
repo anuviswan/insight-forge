@@ -1,46 +1,30 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    One-click deployment and testing script for Insight Forge
+One-click deployment and testing script for Insight Forge
 
 .DESCRIPTION
-    This script:
-    1. Starts the backend server
-    2. Starts the frontend development server
-    3. Waits for services to be ready
-    4. Runs Playwright E2E tests
+This script:
+1. Starts the backend server
+2. Starts the frontend development server
+3. Waits for services to be ready
+4. Runs Playwright E2E tests
 
 .PARAMETER SkipTests
-    Skip running tests after deployment
+Skip running tests after deployment
 
 .PARAMETER Headless
-    Run tests in headless mode (default: $false = UI visible)
-    Use -Headless $true to run without UI visible
-
-.PARAMETER ServerPort
-    Backend server port (default: 5000)
-
-.PARAMETER ClientPort
-    Frontend server port (default: 5173)
-
-.PARAMETER TimeoutSeconds
-    Service startup timeout in seconds (default: 60)
+Run tests in headless mode (default: $false = UI visible)
 
 .EXAMPLE
-    .\deploy.ps1
+.\deploy.ps1
 
 .EXAMPLE
-    .\deploy.ps1 -Headless $true
-
-.NOTES
-    Requires:
-    - .NET SDK 8.0+
-    - Node.js 18+ with npm
-    - PowerShell 5.1+
+.\deploy.ps1 -Headless $true
 #>
 
 param(
-    [switch]$SkipTests = $false,
+    [switch]$SkipTests,
     [bool]$Headless = $false,
     [int]$ServerPort = 5000,
     [int]$ClientPort = 5173,
@@ -48,7 +32,6 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$WarningPreference = "Continue"
 
 function Write-Info {
     param([string]$Message)
@@ -60,21 +43,18 @@ function Write-Success {
     Write-Host "[+] $Message" -ForegroundColor Green
 }
 
-function Write-Error-Custom {
+function Write-ErrorMsg {
     param([string]$Message)
     Write-Host "[-] $Message" -ForegroundColor Red
 }
 
-function Write-Warning-Custom {
+function Write-Warn {
     param([string]$Message)
     Write-Host "[!] $Message" -ForegroundColor Yellow
 }
 
 function Test-Port {
-    param(
-        [int]$Port,
-        [string]$Service
-    )
+    param([int]$Port, [string]$Service)
 
     $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
     while ($stopwatch.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
@@ -91,7 +71,7 @@ function Test-Port {
         }
     }
 
-    Write-Error-Custom "$Service failed to start on port $Port within $TimeoutSeconds seconds"
+    Write-ErrorMsg "$Service failed to start on port $Port"
     return $false
 }
 
@@ -107,7 +87,7 @@ function Start-Server {
     $serverPath = Join-Path $projectRoot "src\server\insight.webapi\insight.webapi"
 
     if (-not (Test-Path $serverPath)) {
-        Write-Error-Custom "Server project not found at $serverPath"
+        Write-ErrorMsg "Server project not found at $serverPath"
         return $false
     }
 
@@ -116,20 +96,14 @@ function Start-Server {
     try {
         $buildOutput = & dotnet build 2>&1
         if ($LASTEXITCODE -ne 0) {
-            Write-Error-Custom "Server build failed"
+            Write-ErrorMsg "Server build failed"
             Write-Host $buildOutput
             return $false
         }
         Write-Success "Server build successful"
 
         Write-Info "Starting server process..."
-        $serverProcess = Start-Process `
-            -FilePath "dotnet" `
-            -ArgumentList "run" `
-            -WindowStyle Hidden `
-            -PassThru `
-            -NoNewWindow
-
+        $serverProcess = Start-Process -FilePath "dotnet" -ArgumentList "run" -WindowStyle Hidden -PassThru -NoNewWindow
         Set-Variable -Name "ServerProcessId" -Value $serverProcess.Id -Scope Script
 
         if (Test-Port -Port $ServerPort -Service "Backend Server") {
@@ -149,7 +123,7 @@ function Start-Client {
     $clientPath = Join-Path $projectRoot "src\client"
 
     if (-not (Test-Path $clientPath)) {
-        Write-Error-Custom "Client project not found at $clientPath"
+        Write-ErrorMsg "Client project not found at $clientPath"
         return $false
     }
 
@@ -159,19 +133,13 @@ function Start-Client {
             Write-Info "Installing client dependencies..."
             & npm install
             if ($LASTEXITCODE -ne 0) {
-                Write-Error-Custom "npm install failed"
+                Write-ErrorMsg "npm install failed"
                 return $false
             }
         }
 
         Write-Info "Starting dev server..."
-        $clientProcess = Start-Process `
-            -FilePath "npm" `
-            -ArgumentList "run", "dev" `
-            -WindowStyle Hidden `
-            -PassThru `
-            -NoNewWindow
-
+        $clientProcess = Start-Process -FilePath "npm" -ArgumentList "run", "dev" -WindowStyle Hidden -PassThru -NoNewWindow
         Set-Variable -Name "ClientProcessId" -Value $clientProcess.Id -Scope Script
 
         if (Test-Port -Port $ClientPort -Service "Frontend Server") {
@@ -191,7 +159,7 @@ function Run-Tests {
     $testPath = Join-Path $projectRoot "src\testing"
 
     if (-not (Test-Path $testPath)) {
-        Write-Error-Custom "Test project not found at $testPath"
+        Write-ErrorMsg "Test project not found at $testPath"
         return $false
     }
 
@@ -200,7 +168,7 @@ function Run-Tests {
         Write-Info "Building test project..."
         $buildOutput = & dotnet build 2>&1
         if ($LASTEXITCODE -ne 0) {
-            Write-Error-Custom "Test build failed"
+            Write-ErrorMsg "Test build failed"
             Write-Host $buildOutput
             return $false
         }
@@ -217,7 +185,7 @@ function Run-Tests {
         Write-Host $testOutput
 
         if ($testExitCode -ne 0) {
-            Write-Error-Custom "Tests failed with exit code $testExitCode"
+            Write-ErrorMsg "Tests failed with exit code $testExitCode"
             return $false
         }
 
@@ -240,7 +208,7 @@ function Cleanup {
             Write-Info "Stopped backend server"
         }
         catch {
-            Write-Warning-Custom "Failed to stop backend server"
+            Write-Warn "Failed to stop backend server"
         }
     }
 
@@ -250,7 +218,7 @@ function Cleanup {
             Write-Info "Stopped frontend server"
         }
         catch {
-            Write-Warning-Custom "Failed to stop frontend server"
+            Write-Warn "Failed to stop frontend server"
         }
     }
 }
@@ -258,7 +226,8 @@ function Cleanup {
 $null = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action { Cleanup }
 
 trap {
-    Write-Error-Custom $_.Exception.Message
+    $errorMsg = $_.Exception.Message
+    Write-ErrorMsg "Error: $errorMsg"
     Cleanup
     exit 1
 }
@@ -304,7 +273,8 @@ try {
     }
 }
 catch {
-    Write-Error-Custom ("Deployment failed: " + $_.Exception.Message)
+    $errorMsg = $_.Exception.Message
+    Write-ErrorMsg "Deployment failed: $errorMsg"
     Cleanup
     exit 1
 }
