@@ -5,12 +5,12 @@ namespace InsightForge.E2E.Tests.Pages;
 public abstract class BasePage
 {
     protected readonly IPage Page;
-    protected readonly TestConfiguration.TestConfiguration Configuration;
+    protected readonly Configuration.TestConfiguration Configuration;
 
     protected BasePage(IPage page)
     {
         Page = page;
-        Configuration = new TestConfiguration.TestConfiguration();
+        Configuration = new Configuration.TestConfiguration();
     }
 
     public async Task GotoAsync(string path)

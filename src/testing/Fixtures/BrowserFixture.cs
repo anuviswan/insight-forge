@@ -1,10 +1,11 @@
 using Microsoft.Playwright;
+using Xunit;
 
 namespace InsightForge.E2E.Tests.Fixtures;
 
 public class BrowserFixture : IAsyncLifetime
 {
-    private readonly TestConfiguration.TestConfiguration _configuration;
+    private readonly Configuration.TestConfiguration _configuration;
     private IBrowser? _browser;
     private IBrowserContext? _context;
     private IPage? _page;
@@ -14,13 +15,13 @@ public class BrowserFixture : IAsyncLifetime
 
     public BrowserFixture()
     {
-        _configuration = new TestConfiguration.TestConfiguration();
+        _configuration = new Configuration.TestConfiguration();
     }
 
     public async Task InitializeAsync()
     {
         var playwright = await Playwright.CreateAsync();
-        _browser = await playwright.Chromium.LaunchAsync(new BrowserLaunchOptions
+        _browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
         {
             Headless = _configuration.HeadlessMode,
             SlowMo = _configuration.SlowMo

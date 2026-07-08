@@ -1,7 +1,9 @@
 using InsightForge.E2E.Tests.Fixtures;
 using InsightForge.E2E.Tests.Pages;
 using InsightForge.E2E.Tests.Utilities;
+using Microsoft.Playwright;
 using Xunit;
+using static Microsoft.Playwright.Assertions;
 
 namespace InsightForge.E2E.Tests.Tests.Authentication;
 
@@ -42,7 +44,7 @@ public class SignupTests : IClassFixture<BrowserFixture>
         await _registerPage.RegisterAsync(uniqueEmail, password);
 
         // Assert
-        await Expect(_browserFixture.Page).ToHaveURLAsync("**/verify-email", new PageAssertionsToHaveURLOptions { Timeout = 5000 });
+        await Expect(_browserFixture.Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*verify-email"), new PageAssertionsToHaveURLOptions { Timeout = 5000 });
     }
 
     [Fact]
