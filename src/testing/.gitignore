@@ -1,0 +1,21 @@
+## Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/.playwright/
+
+## Build
+bin/
+obj/
+
+## IDE
+.vs/
+.vscode/
+*.swp
+*.swo
+*~
+
+## Test artifacts
+*.trx
+coverage/
