@@ -30,13 +30,13 @@
     .\deploy.ps1
 
 .EXAMPLE
-    .\deploy.ps1 -Headless $false
+    .\deploy.ps1 -Headless $true
 
 .NOTES
     Requires:
-    - .NET SDK
-    - Node.js and npm
-    - PowerShell 7+
+    - .NET SDK 8.0+
+    - Node.js 18+ with npm
+    - PowerShell 5.1+
 #>
 
 param(
@@ -50,32 +50,24 @@ param(
 $ErrorActionPreference = "Stop"
 $WarningPreference = "Continue"
 
-# Colors for output
-$Colors = @{
-    Success = 'Green'
-    Error = 'Red'
-    Warning = 'Yellow'
-    Info = 'Cyan'
-}
-
 function Write-Info {
     param([string]$Message)
-    Write-Host "ℹ️  $Message" -ForegroundColor $Colors.Info
+    Write-Host "[*] $Message" -ForegroundColor Cyan
 }
 
 function Write-Success {
     param([string]$Message)
-    Write-Host "✅ $Message" -ForegroundColor $Colors.Success
+    Write-Host "[+] $Message" -ForegroundColor Green
 }
 
 function Write-Error-Custom {
     param([string]$Message)
-    Write-Host "❌ $Message" -ForegroundColor $Colors.Error
+    Write-Host "[-] $Message" -ForegroundColor Red
 }
 
 function Write-Warning-Custom {
     param([string]$Message)
-    Write-Host "⚠️  $Message" -ForegroundColor $Colors.Warning
+    Write-Host "[!] $Message" -ForegroundColor Yellow
 }
 
 function Test-Port {
@@ -138,10 +130,8 @@ function Start-Server {
             -PassThru `
             -NoNewWindow
 
-        # Store process ID for cleanup
         Set-Variable -Name "ServerProcessId" -Value $serverProcess.Id -Scope Script
 
-        # Wait for server to be ready
         if (Test-Port -Port $ServerPort -Service "Backend Server") {
             return $true
         }
@@ -165,7 +155,6 @@ function Start-Client {
 
     Push-Location $clientPath
     try {
-        # Check if node_modules exists
         if (-not (Test-Path "node_modules")) {
             Write-Info "Installing client dependencies..."
             & npm install
@@ -185,7 +174,6 @@ function Start-Client {
 
         Set-Variable -Name "ClientProcessId" -Value $clientProcess.Id -Scope Script
 
-        # Wait for client to be ready
         if (Test-Port -Port $ClientPort -Service "Frontend Server") {
             return $true
         }
@@ -238,7 +226,6 @@ function Run-Tests {
     }
     finally {
         Pop-Location
-        # Clean up environment variables
         $env:Playwright__HeadlessMode = $null
         $env:Playwright__BaseUrl = $null
     }
@@ -268,17 +255,14 @@ function Cleanup {
     }
 }
 
-# Register cleanup on exit
 $null = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action { Cleanup }
 
-# Trap errors to ensure cleanup
 trap {
     Write-Error-Custom $_.Exception.Message
     Cleanup
     exit 1
 }
 
-# Main execution
 Write-Host ""
 Write-Host "╔════════════════════════════════════════╗"
 Write-Host "║  Insight Forge Deployment & Test      ║"
@@ -286,7 +270,6 @@ Write-Host "╚═════════════════════�
 Write-Host ""
 
 try {
-    # Start services
     if (-not (Start-Server)) {
         throw "Failed to start backend server"
     }
@@ -302,7 +285,6 @@ try {
     Write-Host "  - Frontend: http://localhost:$ClientPort"
     Write-Host ""
 
-    # Run tests
     if (-not $SkipTests) {
         Write-Info "Waiting 5 seconds before running tests..."
         Start-Sleep -Seconds 5
