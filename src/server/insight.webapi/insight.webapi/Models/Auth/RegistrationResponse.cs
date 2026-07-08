@@ -1,10 +1,11 @@
 ﻿namespace Insight.WebApi.Models.Auth;
 
-public class RegistrationResponse
+public record RegistrationResponse(
+    bool Success,
+    string? UserId,
+    string Message,
+    string? ErrorCode,
+    List<string> ValidationErrors)
 {
-    public bool Success { get; set; }
-    public string? UserId { get; set; }
-    public string Message { get; set; } = string.Empty;
-    public string? ErrorCode { get; set; }
-    public List<string> ValidationErrors { get; set; } = new();
+    public RegistrationResponse() : this(false, null, string.Empty, null, new()) { }
 }

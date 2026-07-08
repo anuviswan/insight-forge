@@ -1,40 +1,5 @@
 ﻿namespace Insight.Services.Interfaces.Core;
 
-/// <summary>
-/// DTO for user registration service
-/// </summary>
-public class UserRegistrationRequest
-{
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-    public string ConfirmPassword { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// Result of user registration operation
-/// </summary>
-public class UserRegistrationResult
-{
-    public bool Success { get; set; }
-    public string? UserId { get; set; }
-    public string Message { get; set; } = string.Empty;
-    public string? ErrorCode { get; set; }
-    public List<string> ValidationErrors { get; set; } = new();
-}
-
-/// <summary>
-/// Result of email verification operation
-/// </summary>
-public class EmailVerificationResult
-{
-    public bool Success { get; set; }
-    public string Message { get; set; } = string.Empty;
-    public string? ErrorCode { get; set; }
-}
-
-/// <summary>
-/// Service interface for user registration and management.
-/// </summary>
 public interface IUserService
 {
     /// <summary>

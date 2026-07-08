@@ -1,5 +1,6 @@
+using Insight.Services.Core.Configuration;
 using Insight.Services.Interfaces.Core;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -9,30 +10,17 @@ namespace Insight.Services.Core.Domain.Services;
 
 /// <summary>
 /// Implementation of JWT token generation and validation.
-/// Configurable token expiry via IConfiguration.
+/// Uses IOptions pattern for configuration management.
 /// </summary>
 public class JwtTokenService : IJwtTokenService
 {
-    private readonly IConfiguration _configuration;
-    private readonly string _secretKey;
-    private readonly string _issuer;
-    private readonly string _audience;
-    private readonly int _accessTokenExpiryMinutes;
-    private readonly int _refreshTokenExpiryDays;
+    private readonly JwtOptions _options;
 
-    public JwtTokenService(IConfiguration configuration)
+    public JwtTokenService(IOptions<JwtOptions> options)
     {
-        _configuration = configuration;
-        _secretKey = configuration["Authentication:Jwt:SecretKey"] 
-            ?? throw new InvalidOperationException("JWT secret key not configured");
-        _issuer = configuration["Authentication:Jwt:Issuer"] ?? "https://insightforge.local";
-        _audience = configuration["Authentication:Jwt:Audience"] ?? "insight-forge-api";
-        
-        if (!int.TryParse(configuration["Authentication:Jwt:AccessTokenExpiryMinutes"], out _accessTokenExpiryMinutes))
-            _accessTokenExpiryMinutes = 15;
-
-        if (!int.TryParse(configuration["Authentication:Jwt:RefreshTokenExpiryDays"], out _refreshTokenExpiryDays))
-            _refreshTokenExpiryDays = 7;
+        _options = options.Value;
+        if (string.IsNullOrEmpty(_options.SecretKey))
+            throw new InvalidOperationException("JWT secret key not configured");
     }
 
     /// <summary>
@@ -41,7 +29,7 @@ public class JwtTokenService : IJwtTokenService
     /// </summary>
     public string GenerateAccessToken(UserTokenClaims claims, TimeSpan? expiresIn = null)
     {
-        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SecretKey));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
         var tokenClaims = new List<Claim>
@@ -57,10 +45,10 @@ public class JwtTokenService : IJwtTokenService
         }
 
         var token = new JwtSecurityToken(
-            issuer: _issuer,
-            audience: _audience,
+            issuer: _options.Issuer,
+            audience: _options.Audience,
             claims: tokenClaims,
-            expires: DateTime.UtcNow.Add(expiresIn ?? TimeSpan.FromMinutes(_accessTokenExpiryMinutes)),
+            expires: DateTime.UtcNow.Add(expiresIn ?? TimeSpan.FromMinutes(_options.AccessTokenExpiryMinutes)),
             signingCredentials: credentials
         );
 
@@ -73,7 +61,7 @@ public class JwtTokenService : IJwtTokenService
     /// </summary>
     public string GenerateRefreshToken(UserTokenClaims claims, TimeSpan? expiresIn = null)
     {
-        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SecretKey));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
         var tokenClaims = new List<Claim>
@@ -83,10 +71,10 @@ public class JwtTokenService : IJwtTokenService
         };
 
         var token = new JwtSecurityToken(
-            issuer: _issuer,
-            audience: _audience,
+            issuer: _options.Issuer,
+            audience: _options.Audience,
             claims: tokenClaims,
-            expires: DateTime.UtcNow.Add(expiresIn ?? TimeSpan.FromDays(_refreshTokenExpiryDays)),
+            expires: DateTime.UtcNow.Add(expiresIn ?? TimeSpan.FromDays(_options.RefreshTokenExpiryDays)),
             signingCredentials: credentials
         );
 
@@ -105,7 +93,7 @@ public class JwtTokenService : IJwtTokenService
 
         try
         {
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SecretKey));
             var tokenHandler = new JwtSecurityTokenHandler();
 
             var principal = tokenHandler.ValidateToken(token, new TokenValidationParameters
@@ -113,9 +101,9 @@ public class JwtTokenService : IJwtTokenService
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = securityKey,
                 ValidateIssuer = true,
-                ValidIssuer = _issuer,
+                ValidIssuer = _options.Issuer,
                 ValidateAudience = true,
-                ValidAudience = _audience,
+                ValidAudience = _options.Audience,
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
             }, out SecurityToken validatedToken);

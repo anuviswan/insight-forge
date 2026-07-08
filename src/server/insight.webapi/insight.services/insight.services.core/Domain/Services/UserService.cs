@@ -51,7 +51,7 @@ public class UserService : IUserService
         try
         {
             // Check email uniqueness
-            var emailExists = await _storage.UserExistsAsync(request.Email, cancellationToken);
+            var emailExists = await _storage.UserExistsAsync(request.Email, cancellationToken).ConfigureAwait(false);
             if (emailExists)
             {
                 _logger.LogWarning("Registration attempted with duplicate email: {Email}", request.Email);
@@ -94,7 +94,7 @@ public class UserService : IUserService
             };
 
             // Save to table storage
-            await _storage.CreateUserAsync(user, cancellationToken);
+            await _storage.CreateUserAsync(user, cancellationToken).ConfigureAwait(false);
 
             // Create verification token record
             var verification = new EmailVerificationEntity
@@ -106,7 +106,7 @@ public class UserService : IUserService
                 IsUsed = false
             };
 
-            await _storage.CreateVerificationTokenAsync(verification, cancellationToken);
+            await _storage.CreateVerificationTokenAsync(verification, cancellationToken).ConfigureAwait(false);
 
             // Send verification email (fire and forget - don't block response)
             _ = Task.Run(() => SendVerificationEmailAsync(request.Email, verificationToken, cancellationToken), cancellationToken);
@@ -151,7 +151,7 @@ public class UserService : IUserService
         try
         {
             // Get verification token record
-            var verification = await _storage.GetVerificationTokenAsync(token, cancellationToken) as EmailVerificationEntity;
+            var verification = await _storage.GetVerificationTokenAsync(token, cancellationToken).ConfigureAwait(false) as EmailVerificationEntity;
             
             if (verification == null)
             {
@@ -190,10 +190,10 @@ public class UserService : IUserService
 
             // Mark token as used
             verification.IsUsed = true;
-            await _storage.UpdateVerificationTokenAsync(verification, cancellationToken);
+            await _storage.UpdateVerificationTokenAsync(verification, cancellationToken).ConfigureAwait(false);
 
             // Get and update user
-            var user = await _storage.GetUserByIdAsync(verification.UserId, cancellationToken) as UserEntity;
+            var user = await _storage.GetUserByIdAsync(verification.UserId, cancellationToken).ConfigureAwait(false) as UserEntity;
             if (user == null)
             {
                 _logger.LogError("User not found during email verification: {UserId}", verification.UserId);
@@ -209,7 +209,7 @@ public class UserService : IUserService
             user.IsVerified = true;
             user.VerificationToken = null;
             user.VerificationTokenExpiry = null;
-            await _storage.UpdateUserAsync(user, cancellationToken);
+            await _storage.UpdateUserAsync(user, cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("Email verified successfully for user {UserId}", verification.UserId);
 
@@ -233,26 +233,26 @@ public class UserService : IUserService
 
     public async Task<object?> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
-        return await _storage.GetUserByEmailAsync(email, cancellationToken);
+        return await _storage.GetUserByEmailAsync(email, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<bool> UserExistsAsync(string email, CancellationToken cancellationToken = default)
     {
-        return await _storage.UserExistsAsync(email, cancellationToken);
+        return await _storage.UserExistsAsync(email, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<object?> GetUserByIdAsync(string userId, CancellationToken cancellationToken = default)
     {
-        return await _storage.GetUserByIdAsync(userId, cancellationToken);
+        return await _storage.GetUserByIdAsync(userId, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task UpdateLastLoginAsync(string userId, CancellationToken cancellationToken = default)
     {
-        var user = await _storage.GetUserByIdAsync(userId, cancellationToken) as UserEntity;
+        var user = await _storage.GetUserByIdAsync(userId, cancellationToken).ConfigureAwait(false) as UserEntity;
         if (user != null)
         {
             user.LastLoginAt = DateTime.UtcNow;
-            await _storage.UpdateUserAsync(user, cancellationToken);
+            await _storage.UpdateUserAsync(user, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -314,7 +314,7 @@ public class UserService : IUserService
         try
         {
             var verificationLink = "https://localhost:5173/verify-email?token=" + Uri.EscapeDataString(token);
-            await _emailService.SendVerificationEmailAsync(email, verificationLink, cancellationToken);
+            await _emailService.SendVerificationEmailAsync(email, verificationLink, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
