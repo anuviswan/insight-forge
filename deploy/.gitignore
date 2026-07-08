@@ -1,0 +1,26 @@
+# Logs
+*.log
+
+# Build artifacts
+obj/
+bin/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python (for any automation scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment
+.env
+.env.local
