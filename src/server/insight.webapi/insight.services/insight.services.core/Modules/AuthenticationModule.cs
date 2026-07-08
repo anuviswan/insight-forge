@@ -29,12 +29,17 @@ public class AuthenticationModule : IModule
 
     public void RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
-        // Configure LoginAttemptOptions from appsettings
-        var section = configuration.GetSection(LoginAttemptOptions.SectionName);
+        // Configure LoginAttemptOptions from appsettings with defaults
         services.Configure<LoginAttemptOptions>(options =>
         {
-            options.MaxFailedAttempts = int.TryParse(section["MaxFailedAttempts"], out var max) ? max : 5;
-            options.LockoutDurationMinutes = int.TryParse(section["LockoutDurationMinutes"], out var lockout) ? lockout : 30;
+            var section = configuration.GetSection(LoginAttemptOptions.SectionName);
+            if (section.Exists())
+            {
+                if (int.TryParse(section["MaxFailedAttempts"], out var max))
+                    options.MaxFailedAttempts = max;
+                if (int.TryParse(section["LockoutDurationMinutes"], out var lockout))
+                    options.LockoutDurationMinutes = lockout;
+            }
         });
 
         // Configure Azure Table Storage
