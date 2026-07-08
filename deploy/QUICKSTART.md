@@ -2,8 +2,6 @@
 
 ## 🚀 One-Click Deploy & Test
 
-### Windows (PowerShell) - Recommended
-
 ```powershell
 cd deploy
 .\deploy.ps1
@@ -15,41 +13,22 @@ That's it! The script will:
 3. ✅ Run all E2E tests with Playwright
 4. ✅ Keep services running for manual testing
 
-### macOS / Linux
-
-```bash
-cd deploy
-chmod +x deploy.sh
-./deploy.sh
-```
-
 ## ⚙️ Common Options
-
-### Run without tests (just deploy)
-```powershell
-# Windows
-.\deploy.ps1 -SkipTests
-
-# Linux/macOS
-./deploy.sh --skip-tests
-```
 
 ### See the browser while tests run
 ```powershell
-# Windows
 .\deploy.ps1 -Headless $false
+```
 
-# Linux/macOS
-./deploy.sh --headless
+### Run without tests (just deploy)
+```powershell
+.\deploy.ps1 -SkipTests
 ```
 
 ### Use custom ports
 ```powershell
-# Windows (if 5000/5173 are already in use)
+# If 5000/5173 are already in use
 .\deploy.ps1 -ServerPort 3000 -ClientPort 3001
-
-# Linux/macOS
-./deploy.sh --server-port 3000 --client-port 3001
 ```
 
 ## 🧪 What Gets Tested?
@@ -84,18 +63,18 @@ See `src/testing/Tests/Authentication/SignupTests.cs` for full details.
 
 ### "Port already in use"
 ```powershell
-# Use a different port
 .\deploy.ps1 -ServerPort 3000 -ClientPort 3001
 ```
 
 ### "Services failed to start"
 Check logs:
-- Windows: `type %TEMP%\insight-server.log`
-- Linux/macOS: `cat /tmp/insight-server.log`
+```powershell
+type $env:TEMP\insight-server.log
+type $env:TEMP\insight-client.log
+```
 
 ### "Tests failed"
-```bash
-# Run tests manually for more details
+```powershell
 cd src/testing
 dotnet test -v normal
 ```
@@ -110,7 +89,7 @@ After deployment, services stay running. You can:
 ## 📚 More Information
 
 See `README.md` for:
-- Detailed options
+- All available options
 - Environment variables
 - CI/CD integration
 - Performance tips
