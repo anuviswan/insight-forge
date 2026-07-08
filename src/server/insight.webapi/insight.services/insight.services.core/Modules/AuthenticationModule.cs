@@ -1,4 +1,5 @@
 ﻿using Insight.Services.Core.Domain.Services;
+using Insight.Services.Core.Options;
 using Insight.Services.Core.Persistence;
 using Insight.Services.Interfaces.Core;
 using Azure.Data.Tables;
@@ -28,6 +29,14 @@ public class AuthenticationModule : IModule
 
     public void RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
+        // Configure LoginAttemptOptions from appsettings
+        var section = configuration.GetSection(LoginAttemptOptions.SectionName);
+        services.Configure<LoginAttemptOptions>(options =>
+        {
+            options.MaxFailedAttempts = int.TryParse(section["MaxFailedAttempts"], out var max) ? max : 5;
+            options.LockoutDurationMinutes = int.TryParse(section["LockoutDurationMinutes"], out var lockout) ? lockout : 30;
+        });
+
         // Configure Azure Table Storage
         var storageConnectionString = configuration["AzureTableStorage:ConnectionString"];
         var usersTableName = configuration["AzureTableStorage:UsersTableName"] ?? "users";

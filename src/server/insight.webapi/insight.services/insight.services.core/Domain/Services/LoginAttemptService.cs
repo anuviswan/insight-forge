@@ -1,26 +1,22 @@
 using Insight.Services.Core.Domain.Entities;
+using Insight.Services.Core.Options;
 using Insight.Services.Interfaces.Core;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Insight.Services.Core.Domain.Services;
 
 /// <summary>
 /// Service for managing login attempts and enforcing rate limiting/account lockout.
 /// </summary>
-public class LoginAttemptService : ILoginAttemptService
+public class LoginAttemptService(
+    ITableStorageClient storage,
+    ILogger<LoginAttemptService> logger,
+    IOptions<LoginAttemptOptions> options) : ILoginAttemptService
 {
-    private readonly ITableStorageClient _storage;
-    private readonly ILogger<LoginAttemptService> _logger;
-    private const int MaxFailedAttempts = 5;
-    private const int LockoutDurationMinutes = 30;
-
-    public LoginAttemptService(
-        ITableStorageClient storage,
-        ILogger<LoginAttemptService> logger)
-    {
-        _storage = storage;
-        _logger = logger;
-    }
+    private readonly ITableStorageClient _storage = storage;
+    private readonly ILogger<LoginAttemptService> _logger = logger;
+    private readonly LoginAttemptOptions _options = options.Value;
 
     /// <summary>
     /// Record a login attempt (successful or failed).
@@ -150,10 +146,10 @@ public class LoginAttemptService : ILoginAttemptService
             user.FailedLoginAttempts++;
             user.LastFailedLoginAt = DateTime.UtcNow;
 
-            if (user.FailedLoginAttempts >= MaxFailedAttempts)
+            if (user.FailedLoginAttempts >= _options.MaxFailedAttempts)
             {
                 user.IsLockedOut = true;
-                user.LockedOutUntil = DateTime.UtcNow.AddMinutes(LockoutDurationMinutes);
+                user.LockedOutUntil = DateTime.UtcNow.AddMinutes(_options.LockoutDurationMinutes);
                 _logger.LogWarning("Account locked for email {Email} due to {Attempts} failed attempts", email, user.FailedLoginAttempts);
             }
 
