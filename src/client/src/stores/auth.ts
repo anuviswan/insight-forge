@@ -1,10 +1,11 @@
 ﻿import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { api, type UserProfile } from '../api';
+import { api, type UserProfile, type SignInResponse } from '../api';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<UserProfile | null>(null);
   const token = ref<string | null>(null);
+  const refreshToken = ref<string | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
@@ -19,6 +20,63 @@ export const useAuthStore = defineStore('auth', () => {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
+    }
+  }
+
+  async function signIn(email: string, password: string, rememberMe: boolean = false) {
+    loading.value = true;
+    error.value = null;
+    try {
+      const res: SignInResponse = await api.auth.signIn(email, password, rememberMe);
+
+      if (!res.success) {
+        error.value = res.message || 'Sign-in failed';
+        throw new Error(res.message);
+      }
+
+      // Store tokens
+      token.value = res.accessToken || null;
+      if (res.refreshToken) {
+        refreshToken.value = res.refreshToken;
+        localStorage.setItem('refreshToken', res.refreshToken);
+      }
+
+      if (res.accessToken) {
+        localStorage.setItem('token', res.accessToken);
+      }
+
+      // For now, create a basic user profile from the response
+      // In production, this would be fetched from an endpoint
+      if (user.value) {
+        user.value.email = email;
+      } else {
+        user.value = {
+          name: email.split('@')[0],
+          email: email,
+          avatar: '',
+          bio: '',
+          isPro: false,
+          roles: [],
+          preferences: {
+            darkMode: false,
+            autoSave: true,
+            notifications: true
+          },
+          security: {
+            twoFactor: false
+          }
+        };
+      }
+
+      if (user.value) {
+        localStorage.setItem('user', JSON.stringify(user.value));
+        applyTheme(user.value.preferences.darkMode);
+      }
+    } catch (err: any) {
+      error.value = err.message || 'Sign-in failed';
+      throw err;
+    } finally {
+      loading.value = false;
     }
   }
 
@@ -45,8 +103,10 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await api.auth.logout();
       token.value = null;
+      refreshToken.value = null;
       user.value = null;
       localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       document.documentElement.classList.remove('dark');
     } finally {
@@ -91,9 +151,11 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     user,
     token,
+    refreshToken,
     loading,
     error,
     isAuthenticated,
+    signIn,
     login,
     logout,
     toggleDarkMode,

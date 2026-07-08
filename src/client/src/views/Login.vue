@@ -19,12 +19,17 @@ async function handleLogin() {
     return;
   }
 
+  if (!password.value) {
+    errorMsg.value = 'Please enter password';
+    return;
+  }
+
   errorMsg.value = '';
   try {
-    await authStore.login(email.value, password.value);
+    await authStore.signIn(email.value, password.value, rememberMe.value);
     router.push({ name: 'Blogger' });
   } catch (err: any) {
-    errorMsg.value = err.message || 'Login failed. Please check credentials.';
+    errorMsg.value = err.message || 'Sign-in failed. Please check your credentials.';
   }
 }
 

@@ -27,12 +27,29 @@ export interface RegistrationResponse {
   message: string;
   errorCode?: string;
   validationErrors?: string[];
+  verificationToken?: string;
 }
 
 export interface VerifyEmailResponse {
   success: boolean;
   message: string;
   errorCode?: string;
+}
+
+export interface SignInRequest {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
+}
+
+export interface SignInResponse {
+  success: boolean;
+  userId?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  message: string;
+  errorCode?: string;
+  validationErrors?: string[];
 }
 
 export interface BlogPost {
@@ -123,6 +140,32 @@ export const api = {
         return data;
       } catch (error) {
         console.error("Email verification error:", error);
+        return {
+          success: false,
+          message: "Failed to connect to server",
+          errorCode: "NETWORK_ERROR"
+        };
+      }
+    },
+
+    async signIn(email: string, password: string, rememberMe: boolean = false): Promise<SignInResponse> {
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/sign-in`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            rememberMe
+          })
+        });
+
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error("Sign-in error:", error);
         return {
           success: false,
           message: "Failed to connect to server",
