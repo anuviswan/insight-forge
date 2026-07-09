@@ -137,6 +137,79 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Sign in user with email and password.
+    /// Returns JWT access and refresh tokens on successful authentication.
+    /// Enforces rate limiting and account lockout after failed attempts.
+    /// </summary>
+    /// <param name="request">Sign-in request with email and password</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Sign-in response with tokens on success, or error message on failure</returns>
+    [HttpPost("sign-in")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<ActionResult<SignInResponse>> SignIn(
+        [FromBody] SignInRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request == null)
+            return BadRequest(new SignInResponse
+            {
+                Success = false,
+                Message = "Request body is required",
+                ErrorCode = "INVALID_REQUEST"
+            });
+
+        // Map from API model to service model
+        var serviceRequest = new UserSignInRequest
+        {
+            Email = request.Email,
+            Password = request.Password,
+            RememberMe = request.RememberMe
+        };
+
+        var result = await _userService.SignInAsync(serviceRequest, cancellationToken);
+
+        if (result.Success)
+        {
+            _logger.LogInformation("User signed in successfully: {UserId}", result.UserId);
+            return Ok(new SignInResponse
+            {
+                Success = result.Success,
+                UserId = result.UserId,
+                AccessToken = result.AccessToken,
+                RefreshToken = result.RefreshToken,
+                Message = result.Message
+            });
+        }
+
+        // Return appropriate HTTP status based on error code
+        return result.ErrorCode switch
+        {
+            "ACCOUNT_LOCKED" => StatusCode(StatusCodes.Status429TooManyRequests, new SignInResponse
+            {
+                Success = result.Success,
+                Message = result.Message,
+                ErrorCode = result.ErrorCode
+            }),
+            "INVALID_CREDENTIALS" => Unauthorized(new SignInResponse
+            {
+                Success = result.Success,
+                Message = result.Message,
+                ErrorCode = result.ErrorCode
+            }),
+            _ => BadRequest(new SignInResponse
+            {
+                Success = result.Success,
+                Message = result.Message,
+                ErrorCode = result.ErrorCode,
+                ValidationErrors = result.ValidationErrors
+            })
+        };
+    }
+
+    /// <summary>
     /// Health check endpoint for API.
     /// </summary>
     [HttpGet("health")]

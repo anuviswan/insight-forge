@@ -1,4 +1,6 @@
-﻿using Insight.Services.Core.Domain.Services;
+﻿using Insight.Services.Core.Configuration;
+using Insight.Services.Core.Domain.Services;
+using Insight.Services.Core.Options;
 using Insight.Services.Core.Persistence;
 using Insight.Services.Interfaces.Core;
 using Azure.Data.Tables;
@@ -9,12 +11,13 @@ using Microsoft.Extensions.Logging;
 namespace Insight.Services.Core.Modules;
 
 /// <summary>
-/// Wrapper to hold both table clients.
+/// Wrapper to hold all table clients.
 /// </summary>
 public class TableClientProvider
 {
     public TableClient UsersTable { get; set; } = null!;
     public TableClient VerificationsTable { get; set; } = null!;
+    public TableClient LoginAttemptsTable { get; set; } = null!;
 }
 
 /// <summary>
@@ -27,10 +30,45 @@ public class AuthenticationModule : IModule
 
     public void RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
+        // Configure JWT options from Authentication:Jwt section
+        services.Configure<JwtOptions>(options =>
+        {
+            var authSection = configuration.GetSection(JwtOptions.SectionName);
+            if (authSection.Exists())
+            {
+                var jwtSection = authSection.GetSection("Jwt");
+                if (jwtSection.Exists())
+                {
+                    options.Jwt = new JwtSettings
+                    {
+                        SecretKey = jwtSection["SecretKey"] ?? string.Empty,
+                        Issuer = jwtSection["Issuer"] ?? "https://insightforge.local",
+                        Audience = jwtSection["Audience"] ?? "insight-forge-api",
+                        AccessTokenExpiryMinutes = int.TryParse(jwtSection["AccessTokenExpiryMinutes"], out var minutes) ? minutes : 15,
+                        RefreshTokenExpiryDays = int.TryParse(jwtSection["RefreshTokenExpiryDays"], out var days) ? days : 7
+                    };
+                }
+            }
+        });
+
+        // Configure LoginAttemptOptions from appsettings with defaults
+        services.Configure<LoginAttemptOptions>(options =>
+        {
+            var section = configuration.GetSection(LoginAttemptOptions.SectionName);
+            if (section.Exists())
+            {
+                if (int.TryParse(section["MaxFailedAttempts"], out var max))
+                    options.MaxFailedAttempts = max;
+                if (int.TryParse(section["LockoutDurationMinutes"], out var lockout))
+                    options.LockoutDurationMinutes = lockout;
+            }
+        });
+
         // Configure Azure Table Storage
         var storageConnectionString = configuration["AzureTableStorage:ConnectionString"];
         var usersTableName = configuration["AzureTableStorage:UsersTableName"] ?? "users";
         var verificationsTableName = configuration["AzureTableStorage:VerificationTableName"] ?? "emailverifications";
+        var loginAttemptsTableName = configuration["AzureTableStorage:LoginAttemptsTableName"] ?? "loginattempts";
 
         if (string.IsNullOrEmpty(storageConnectionString))
         {
@@ -57,7 +95,8 @@ public class AuthenticationModule : IModule
                 {
                     serviceClient.CreateTableIfNotExistsAsync(usersTableName).Wait();
                     serviceClient.CreateTableIfNotExistsAsync(verificationsTableName).Wait();
-                    logger.LogInformation("Azure Table Storage tables initialized: {UsersTable}, {VerificationsTable}", usersTableName, verificationsTableName);
+                    serviceClient.CreateTableIfNotExistsAsync(loginAttemptsTableName).Wait();
+                    logger.LogInformation("Azure Table Storage tables initialized: {UsersTable}, {VerificationsTable}, {LoginAttemptsTable}", usersTableName, verificationsTableName, loginAttemptsTableName);
                 }
                 catch (Exception ex)
                 {
@@ -67,11 +106,13 @@ public class AuthenticationModule : IModule
                 // Get table clients
                 var usersClient = serviceClient.GetTableClient(usersTableName);
                 var verificationsClient = serviceClient.GetTableClient(verificationsTableName);
+                var loginAttemptsClient = serviceClient.GetTableClient(loginAttemptsTableName);
 
                 return new TableClientProvider
                 {
                     UsersTable = usersClient,
-                    VerificationsTable = verificationsClient
+                    VerificationsTable = verificationsClient,
+                    LoginAttemptsTable = loginAttemptsClient
                 };
             }
             catch (Exception ex)
@@ -86,6 +127,7 @@ public class AuthenticationModule : IModule
         services.AddScoped<IPasswordService, PasswordService>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IEmailService, MockEmailService>();
+        services.AddScoped<ILoginAttemptService, LoginAttemptService>();
         services.AddScoped<IUserService, UserService>();
     }
 }

@@ -14,12 +14,12 @@ namespace Insight.Services.Core.Domain.Services;
 /// </summary>
 public class JwtTokenService : IJwtTokenService
 {
-    private readonly JwtOptions _options;
+    private readonly JwtSettings _jwt;
 
     public JwtTokenService(IOptions<JwtOptions> options)
     {
-        _options = options.Value;
-        if (string.IsNullOrEmpty(_options.SecretKey))
+        _jwt = options.Value.Jwt;
+        if (string.IsNullOrEmpty(_jwt.SecretKey))
             throw new InvalidOperationException("JWT secret key not configured");
     }
 
@@ -29,7 +29,7 @@ public class JwtTokenService : IJwtTokenService
     /// </summary>
     public string GenerateAccessToken(UserTokenClaims claims, TimeSpan? expiresIn = null)
     {
-        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SecretKey));
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.SecretKey));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
         var tokenClaims = new List<Claim>
@@ -45,10 +45,10 @@ public class JwtTokenService : IJwtTokenService
         }
 
         var token = new JwtSecurityToken(
-            issuer: _options.Issuer,
-            audience: _options.Audience,
+            issuer: _jwt.Issuer,
+            audience: _jwt.Audience,
             claims: tokenClaims,
-            expires: DateTime.UtcNow.Add(expiresIn ?? TimeSpan.FromMinutes(_options.AccessTokenExpiryMinutes)),
+            expires: DateTime.UtcNow.Add(expiresIn ?? TimeSpan.FromMinutes(_jwt.AccessTokenExpiryMinutes)),
             signingCredentials: credentials
         );
 
@@ -61,7 +61,7 @@ public class JwtTokenService : IJwtTokenService
     /// </summary>
     public string GenerateRefreshToken(UserTokenClaims claims, TimeSpan? expiresIn = null)
     {
-        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SecretKey));
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.SecretKey));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
         var tokenClaims = new List<Claim>
@@ -71,10 +71,10 @@ public class JwtTokenService : IJwtTokenService
         };
 
         var token = new JwtSecurityToken(
-            issuer: _options.Issuer,
-            audience: _options.Audience,
+            issuer: _jwt.Issuer,
+            audience: _jwt.Audience,
             claims: tokenClaims,
-            expires: DateTime.UtcNow.Add(expiresIn ?? TimeSpan.FromDays(_options.RefreshTokenExpiryDays)),
+            expires: DateTime.UtcNow.Add(expiresIn ?? TimeSpan.FromDays(_jwt.RefreshTokenExpiryDays)),
             signingCredentials: credentials
         );
 
@@ -93,7 +93,7 @@ public class JwtTokenService : IJwtTokenService
 
         try
         {
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SecretKey));
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.SecretKey));
             var tokenHandler = new JwtSecurityTokenHandler();
 
             var principal = tokenHandler.ValidateToken(token, new TokenValidationParameters
@@ -101,9 +101,9 @@ public class JwtTokenService : IJwtTokenService
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = securityKey,
                 ValidateIssuer = true,
-                ValidIssuer = _options.Issuer,
+                ValidIssuer = _jwt.Issuer,
                 ValidateAudience = true,
-                ValidAudience = _options.Audience,
+                ValidAudience = _jwt.Audience,
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
             }, out SecurityToken validatedToken);

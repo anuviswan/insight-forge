@@ -33,4 +33,17 @@ public interface IUserService
     /// Update last login timestamp for user.
     /// </summary>
     Task UpdateLastLoginAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Authenticate user with email and password.
+    /// Returns access and refresh tokens on success.
+    /// Enforces rate limiting and account lockout.
+    /// Never reveals whether email exists (generic error messages).
+    /// </summary>
+    Task<UserSignInResult> SignInAsync(UserSignInRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Clear failed login attempts for a user (e.g., after successful login).
+    /// </summary>
+    Task ClearFailedLoginAttemptsAsync(string userId, CancellationToken cancellationToken = default);
 }

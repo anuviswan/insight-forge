@@ -14,6 +14,8 @@ public class UserService : IUserService
     private readonly ITableStorageClient _storage;
     private readonly IPasswordService _passwordService;
     private readonly IEmailService _emailService;
+    private readonly IJwtTokenService _jwtTokenService;
+    private readonly ILoginAttemptService _loginAttemptService;
     private readonly ILogger<UserService> _logger;
     private readonly IHostEnvironment _environment;
     private const int VerificationTokenExpiryHours = 24;
@@ -22,12 +24,16 @@ public class UserService : IUserService
         ITableStorageClient storage,
         IPasswordService passwordService,
         IEmailService emailService,
+        IJwtTokenService jwtTokenService,
+        ILoginAttemptService loginAttemptService,
         ILogger<UserService> logger,
         IHostEnvironment environment)
     {
         _storage = storage;
         _passwordService = passwordService;
         _emailService = emailService;
+        _jwtTokenService = jwtTokenService;
+        _loginAttemptService = loginAttemptService;
         _logger = logger;
         _environment = environment;
     }
@@ -265,6 +271,150 @@ public class UserService : IUserService
         {
             user.LastLoginAt = DateTime.UtcNow;
             await _storage.UpdateUserAsync(user, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Authenticate user with email and password.
+    /// Returns access and refresh tokens on success.
+    /// Enforces rate limiting and account lockout.
+    /// Never reveals whether email exists (generic error messages).
+    /// </summary>
+    public async Task<UserSignInResult> SignInAsync(UserSignInRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request?.Email) || string.IsNullOrWhiteSpace(request?.Password))
+        {
+            return new UserSignInResult
+            {
+                Success = false,
+                Message = "Invalid email or password",
+                ErrorCode = "INVALID_CREDENTIALS"
+            };
+        }
+
+        try
+        {
+            // Check if account is locked
+            var isLocked = await _loginAttemptService.IsAccountLockedAsync(request.Email, cancellationToken).ConfigureAwait(false);
+            if (isLocked)
+            {
+                _logger.LogWarning("Sign-in attempted for locked account: {Email}", request.Email);
+                await _loginAttemptService.RecordAttemptAsync(request.Email, null, false, cancellationToken).ConfigureAwait(false);
+                return new UserSignInResult
+                {
+                    Success = false,
+                    Message = "Account is temporarily locked due to too many failed attempts",
+                    ErrorCode = "ACCOUNT_LOCKED"
+                };
+            }
+
+            // Get user by email
+            var user = await _storage.GetUserByEmailAsync(request.Email, cancellationToken).ConfigureAwait(false) as UserEntity;
+
+            if (user == null)
+            {
+                _logger.LogWarning("Sign-in attempted with non-existent email: {Email}", request.Email);
+                await _loginAttemptService.RecordAttemptAsync(request.Email, null, false, cancellationToken).ConfigureAwait(false);
+                return new UserSignInResult
+                {
+                    Success = false,
+                    Message = "Invalid email or password",
+                    ErrorCode = "INVALID_CREDENTIALS"
+                };
+            }
+
+            // Check if email is verified
+            if (!user.IsVerified)
+            {
+                _logger.LogWarning("Sign-in attempted for unverified email: {Email}", request.Email);
+                await _loginAttemptService.RecordAttemptAsync(request.Email, user.RowKey, false, cancellationToken).ConfigureAwait(false);
+                return new UserSignInResult
+                {
+                    Success = false,
+                    Message = "Invalid email or password",
+                    ErrorCode = "INVALID_CREDENTIALS"
+                };
+            }
+
+            // Verify password
+            var passwordValid = _passwordService.VerifyPassword(request.Password, user.PasswordHash);
+            if (!passwordValid)
+            {
+                _logger.LogWarning("Sign-in failed for user {UserId} ({Email}) - invalid password", user.RowKey, request.Email);
+
+                // Increment failed attempts
+                await _loginAttemptService.IncrementFailedAttemptsAsync(request.Email, cancellationToken).ConfigureAwait(false);
+                await _loginAttemptService.RecordAttemptAsync(request.Email, user.RowKey, false, cancellationToken).ConfigureAwait(false);
+
+                return new UserSignInResult
+                {
+                    Success = false,
+                    Message = "Invalid email or password",
+                    ErrorCode = "INVALID_CREDENTIALS"
+                };
+            }
+
+            // Clear failed attempts and update last login
+            user.FailedLoginAttempts = 0;
+            user.LastFailedLoginAt = null;
+            user.IsLockedOut = false;
+            user.LockedOutUntil = null;
+            user.LastLoginAt = DateTime.UtcNow;
+            await _storage.UpdateUserAsync(user, cancellationToken).ConfigureAwait(false);
+            await _loginAttemptService.RecordAttemptAsync(request.Email, user.RowKey, true, cancellationToken).ConfigureAwait(false);
+
+            // Generate tokens
+            var claims = new UserTokenClaims
+            {
+                UserId = user.RowKey,
+                Email = user.Email
+            };
+            var accessToken = _jwtTokenService.GenerateAccessToken(claims);
+            var refreshToken = _jwtTokenService.GenerateRefreshToken(claims);
+
+            _logger.LogInformation("User signed in successfully: {UserId} ({Email})", user.RowKey, user.Email);
+
+            return new UserSignInResult
+            {
+                Success = true,
+                UserId = user.RowKey,
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                Message = "Sign-in successful"
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during sign-in for email {Email}", request.Email);
+            return new UserSignInResult
+            {
+                Success = false,
+                Message = "Sign-in failed due to server error",
+                ErrorCode = "SERVER_ERROR"
+            };
+        }
+    }
+
+    /// <summary>
+    /// Clear failed login attempts for a user (called after successful login).
+    /// </summary>
+    public async Task ClearFailedLoginAttemptsAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var user = await _storage.GetUserByIdAsync(userId, cancellationToken).ConfigureAwait(false) as UserEntity;
+            if (user != null)
+            {
+                user.FailedLoginAttempts = 0;
+                user.LastFailedLoginAt = null;
+                user.IsLockedOut = false;
+                user.LockedOutUntil = null;
+                await _storage.UpdateUserAsync(user, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error clearing failed login attempts for user {UserId}", userId);
         }
     }
 
