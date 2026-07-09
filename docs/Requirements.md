@@ -12,18 +12,19 @@ The MVP supports **Google Gemini only**. The architecture shall be Gemini-specif
 
 ## Account Management
 
-| ID         | Requirement                                                                                   | Priority |
-| ---------- | --------------------------------------------------------------------------------------------- | -------- |
-| **IF-100** | The system shall allow users to register an account using an email address and password.      | High     |
-| IF-101     | The system shall ensure that email addresses are unique.                                      | High     |
-| IF-102     | The system shall require users to verify their email address before activating their account. | Medium   |
-| IF-103     | The system shall allow users to sign in using their registered credentials.                   | High     |
-| IF-104     | The system shall allow users to sign out of the application.                                  | High     |
-| IF-105     | The system shall allow users to update their profile information.                             | Medium   |
-| IF-106     | The system shall allow users to change their email address after successful verification.     | Medium   |
-| IF-107     | The system shall allow users to deactivate their own account.                                 | Low      |
-| IF-108     | The system shall maintain account status (Pending Verification, Active, Disabled).            | Medium   |
-| IF-109     | The system shall record account creation date and last login date.                            | Medium   |
+| ID         | Requirement                                                                                   | Priority | Status |
+| ---------- | --------------------------------------------------------------------------------------------- | -------- | ------ |
+| **IF-100** | The system shall allow users to register an account using an email address and password.      | High     | ✅      |
+| IF-101     | The system shall ensure that email addresses are unique.                                      | High     | ✅      |
+| IF-102     | The system shall require users to verify their email address before activating their account. | Medium   | ✅      |
+| IF-103     | The system shall allow users to sign in using their registered credentials.                   | High     | ✅      |
+| IF-104     | The system shall allow users to sign out of the application.                                  | High     | ⬜      |
+| IF-105     | The system shall allow users to update their profile information.                             | Medium   | ⬜      |
+| IF-106     | The system shall allow users to change their email address after successful verification.     | Medium   | ⬜      |
+| IF-107     | The system shall allow users to deactivate their own account.                                 | Low      | ⬜      |
+| IF-108     | The system shall maintain account status (Pending Verification, Active, Disabled).            | Medium   | ⬜      |
+| IF-109     | The system shall record account creation date and last login date.                            | Medium   | ⬜      |
+
 
 ---
 
