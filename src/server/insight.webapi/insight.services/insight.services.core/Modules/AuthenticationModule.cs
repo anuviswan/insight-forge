@@ -1,4 +1,5 @@
-﻿using Insight.Services.Core.Domain.Services;
+﻿using Insight.Services.Core.Configuration;
+using Insight.Services.Core.Domain.Services;
 using Insight.Services.Core.Options;
 using Insight.Services.Core.Persistence;
 using Insight.Services.Interfaces.Core;
@@ -29,6 +30,27 @@ public class AuthenticationModule : IModule
 
     public void RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
+        // Configure JWT options from Authentication:Jwt section
+        services.Configure<JwtOptions>(options =>
+        {
+            var authSection = configuration.GetSection(JwtOptions.SectionName);
+            if (authSection.Exists())
+            {
+                var jwtSection = authSection.GetSection("Jwt");
+                if (jwtSection.Exists())
+                {
+                    options.Jwt = new JwtSettings
+                    {
+                        SecretKey = jwtSection["SecretKey"] ?? string.Empty,
+                        Issuer = jwtSection["Issuer"] ?? "https://insightforge.local",
+                        Audience = jwtSection["Audience"] ?? "insight-forge-api",
+                        AccessTokenExpiryMinutes = int.TryParse(jwtSection["AccessTokenExpiryMinutes"], out var minutes) ? minutes : 15,
+                        RefreshTokenExpiryDays = int.TryParse(jwtSection["RefreshTokenExpiryDays"], out var days) ? days : 7
+                    };
+                }
+            }
+        });
+
         // Configure LoginAttemptOptions from appsettings with defaults
         services.Configure<LoginAttemptOptions>(options =>
         {

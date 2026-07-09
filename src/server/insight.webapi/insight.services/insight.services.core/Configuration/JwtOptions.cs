@@ -2,8 +2,13 @@ namespace Insight.Services.Core.Configuration;
 
 public class JwtOptions
 {
-    public const string SectionName = "Authentication:Jwt";
+    public const string SectionName = "Authentication";
 
+    public JwtSettings Jwt { get; set; } = new();
+}
+
+public class JwtSettings
+{
     public string SecretKey { get; set; } = string.Empty;
     public string Issuer { get; set; } = "https://insightforge.local";
     public string Audience { get; set; } = "insight-forge-api";
