@@ -8,7 +8,7 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
 {
     private const string AgentName = "Blog Writer Agent";
     private const string BlogWorkflow = "create-blogpost";
-    private const string ResearchWorkflow = "research";
+    private const string ResearchWorkflow = "research-only";
 
     public Task<string> CheckIfAgentExists(string agentName, CancellationToken cancellationToken = default)
     {
@@ -36,9 +36,9 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
 
         var input = BuildPrompt(topic, audience, writingStyle);
 
-        var agentDef = metadataProvider.GetAgent("Antigravity");
+        var agentDef = metadataProvider.GetAgent(AgentName);
 
-        var result = await apiClient.RunAgentWorkflowAsync(AgentName, BlogWorkflow, input, agentDef, cancellationToken);
+        var result = await apiClient.RunAgentWorkflowAsync(AgentName, BlogWorkflow, input, agentDef, cancellationToken).ConfigureAwait(false);
         return result ?? string.Empty;
     }
 
@@ -49,9 +49,9 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
 
         var input = BuildResearchPrompt(topic, audience, writingStyle);
 
-        var agentDef = metadataProvider.GetAgent("Antigravity");
+        var agentDef = metadataProvider.GetAgent(AgentName);
 
-        var result = await apiClient.RunAgentWorkflowAsync(AgentName, ResearchWorkflow, input, agentDef, cancellationToken);
+        var result = await apiClient.RunAgentWorkflowAsync(AgentName, ResearchWorkflow, input, agentDef, cancellationToken).ConfigureAwait(false);
         return result ?? string.Empty;
     }
 
