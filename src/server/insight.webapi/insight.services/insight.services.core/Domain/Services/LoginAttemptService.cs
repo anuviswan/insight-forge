@@ -109,30 +109,6 @@ public class LoginAttemptService(
     }
 
     /// <summary>
-    /// Clear failed login attempts for an account (called after successful login).
-    /// </summary>
-    public async Task ClearAttemptsAsync(string email, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var user = await _storage.GetUserByEmailAsync(email, cancellationToken).ConfigureAwait(false) as UserEntity;
-            if (user != null)
-            {
-                user.FailedLoginAttempts = 0;
-                user.LastFailedLoginAt = null;
-                user.IsLockedOut = false;
-                user.LockedOutUntil = null;
-                await _storage.UpdateUserAsync(user, cancellationToken).ConfigureAwait(false);
-                _logger.LogInformation("Failed login attempts cleared for email {Email}", email);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error clearing failed attempts for email {Email}", email);
-        }
-    }
-
-    /// <summary>
     /// Increment failed login attempts and lock account if threshold exceeded.
     /// </summary>
     public async Task IncrementFailedAttemptsAsync(string email, CancellationToken cancellationToken = default)

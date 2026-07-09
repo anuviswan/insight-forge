@@ -21,11 +21,6 @@ public interface ILoginAttemptService
     Task<TimeSpan?> GetLockoutTimeRemainingAsync(string email, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Clear failed login attempts for an account.
-    /// </summary>
-    Task ClearAttemptsAsync(string email, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Increment failed login attempts and lock account if threshold exceeded.
     /// </summary>
     Task IncrementFailedAttemptsAsync(string email, CancellationToken cancellationToken = default);

@@ -355,7 +355,10 @@ public class UserService : IUserService
             }
 
             // Clear failed attempts and update last login
-            await _loginAttemptService.ClearAttemptsAsync(request.Email, cancellationToken).ConfigureAwait(false);
+            user.FailedLoginAttempts = 0;
+            user.LastFailedLoginAt = null;
+            user.IsLockedOut = false;
+            user.LockedOutUntil = null;
             user.LastLoginAt = DateTime.UtcNow;
             await _storage.UpdateUserAsync(user, cancellationToken).ConfigureAwait(false);
             await _loginAttemptService.RecordAttemptAsync(request.Email, user.RowKey, true, cancellationToken).ConfigureAwait(false);
@@ -402,7 +405,11 @@ public class UserService : IUserService
             var user = await _storage.GetUserByIdAsync(userId, cancellationToken).ConfigureAwait(false) as UserEntity;
             if (user != null)
             {
-                await _loginAttemptService.ClearAttemptsAsync(user.Email, cancellationToken).ConfigureAwait(false);
+                user.FailedLoginAttempts = 0;
+                user.LastFailedLoginAt = null;
+                user.IsLockedOut = false;
+                user.LockedOutUntil = null;
+                await _storage.UpdateUserAsync(user, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
