@@ -30,17 +30,18 @@ The MVP supports **Google Gemini only**. The architecture shall be Gemini-specif
 
 ## Authentication
 
-| ID         | Requirement                                                                                   | Priority |
-| ---------- | --------------------------------------------------------------------------------------------- | -------- |
-| **IF-200** | The system shall authenticate registered users before allowing access to protected resources. | High     |
-| IF-201     | The system shall support JWT Bearer authentication.                                           | High     |
-| IF-202     | The system shall issue JWT access tokens after successful authentication.                     | High     |
-| IF-203     | The system shall support refresh tokens.                                                      | Medium   |
-| IF-204     | The system shall securely store passwords using industry-standard hashing algorithms.         | High     |
-| IF-205     | The system shall allow users to change their password.                                        | Medium   |
-| IF-206     | The system shall allow users to reset forgotten passwords using email verification.           | Medium   |
-| IF-207     | The system shall invalidate refresh tokens upon logout.                                       | Medium   |
-| IF-208     | The system shall reject requests containing expired or invalid authentication tokens.         | High     |
+| ID         | Requirement                                                                                   | Priority | Status |
+| ---------- | --------------------------------------------------------------------------------------------- | :------: | :----: |
+| **IF-200** | The system shall authenticate registered users before allowing access to protected resources. |   High   |    ✅   |
+| IF-201     | The system shall support JWT Bearer authentication.                                           |   High   |    ✅   |
+| IF-202     | The system shall issue JWT access tokens after successful authentication.                     |   High   |    ✅   |
+| IF-203     | The system shall support refresh tokens.                                                      |  Medium  |    ✅   |
+| IF-204     | The system shall securely store passwords using industry-standard hashing algorithms.         |   High   |    ✅   |
+| IF-205     | The system shall allow users to change their password.                                        |  Medium  |    ⬜   |
+| IF-206     | The system shall allow users to reset forgotten passwords using email verification.           |  Medium  |    ⬜   |
+| IF-207     | The system shall invalidate refresh tokens upon logout.                                       |  Medium  |    ⬜   |
+| IF-208     | The system shall reject requests containing expired or invalid authentication tokens.         |   High   |    ⬜   |
+
 
 ---
 
