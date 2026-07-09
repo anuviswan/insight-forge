@@ -15,7 +15,7 @@ public class BloggerController(IBlogService blogService) : ControllerBase
         if (request == null || string.IsNullOrWhiteSpace(request.Topic))
             return BadRequest("Topic is required.");
 
-        var content = await blogService.CreateBlogEntryAsync(request.Topic, cancellationToken);
+        var content = await blogService.CreateBlogEntryAsync(request.Topic, request.Audience, request.WritingStyle, cancellationToken);
         return Ok(new BlogEntryResponse { Content = content });
     }
 

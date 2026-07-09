@@ -28,16 +28,31 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
         return result ?? string.Empty;
     }
 
-    public async Task<string> CreateBlogPostAsync(string topic, CancellationToken cancellationToken = default)
+    public async Task<string> CreateBlogPostAsync(string topic, string audience, string writingStyle, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(topic))
             throw new ArgumentException("Topic must be provided", nameof(topic));
 
-        var input = topic.Trim();
+        var input = BuildPrompt(topic, audience, writingStyle);
 
         var agentDef = metadataProvider.GetAgent("Antigravity");
 
         var result = await apiClient.RunAgentWorkflowAsync(AgentName, Workflow, input, agentDef, cancellationToken);
         return result ?? string.Empty;
+    }
+
+    private static string BuildPrompt(string topic, string audience, string writingStyle)
+    {
+        var prompt = $"Write a comprehensive blog post about '{topic}'";
+
+        if (!string.IsNullOrWhiteSpace(audience))
+            prompt += $"\n\nIntended Audience: {audience.Trim()}";
+
+        if (!string.IsNullOrWhiteSpace(writingStyle))
+            prompt += $"\n\nWriting Style/Tone: {writingStyle.Trim()}";
+
+        prompt += "\n\nProvide the complete blog post in well-formatted Markdown.";
+
+        return prompt;
     }
 }
