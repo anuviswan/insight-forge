@@ -5,12 +5,14 @@ import { useDocumentsStore } from '../stores/documents';
 const documentsStore = useDocumentsStore();
 
 const topic = ref('');
+const audience = ref('');
+const writingStyle = ref('');
 const showFabAlert = ref(false);
 
 async function handleGenerate() {
   if (!topic.value.trim()) return;
   try {
-    await documentsStore.generateBlogPost(topic.value);
+    await documentsStore.generateBlogPost(topic.value, audience.value, writingStyle.value);
   } catch (err) {
     console.error('Failed to generate post:', err);
   }
@@ -51,14 +53,45 @@ function handleDelete() {
       <h1 class="generator-title">What's on your mind?</h1>
       <p class="generator-subtitle">Enter a topic and our AI will craft a high-quality Markdown blog post for you.</p>
       
-      <form @submit.prevent="handleGenerate" class="input-form">
-        <input 
-          type="text" 
-          v-model="topic" 
-          placeholder="e.g., The Future of AI in Design" 
-          class="form-control generator-input"
-          :disabled="documentsStore.loading"
-        />
+      <form @submit.prevent="handleGenerate" class="input-form-wrapper">
+        <div class="form-group">
+          <label for="topic-input" class="form-label">Topic</label>
+          <input
+            id="topic-input"
+            type="text"
+            v-model="topic"
+            placeholder="e.g., The Future of AI in Design"
+            class="form-control generator-input"
+            :disabled="documentsStore.loading"
+          />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group form-group-half">
+            <label for="audience-input" class="form-label">Intended Audience</label>
+            <input
+              id="audience-input"
+              type="text"
+              v-model="audience"
+              placeholder="e.g., Product managers, Developers"
+              class="form-control"
+              :disabled="documentsStore.loading"
+            />
+          </div>
+
+          <div class="form-group form-group-half">
+            <label for="style-input" class="form-label">Writing Style/Tone</label>
+            <input
+              id="style-input"
+              type="text"
+              v-model="writingStyle"
+              placeholder="e.g., Professional, Casual, Technical"
+              class="form-control"
+              :disabled="documentsStore.loading"
+            />
+          </div>
+        </div>
+
         <button type="submit" class="btn btn-primary generate-btn" :disabled="documentsStore.loading || !topic.trim()">
           <span v-if="documentsStore.loading" class="spinner"></span>
           <span v-else>Generate</span>
@@ -224,17 +257,47 @@ function handleDelete() {
   margin-bottom: var(--space-lg);
 }
 
-.input-form {
+.input-form-wrapper {
   display: flex;
+  flex-direction: column;
   gap: var(--space-md);
 }
 
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.form-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+.form-group-half {
+  width: 100%;
+}
+
 .generator-input {
-  flex: 1;
+  width: 100%;
 }
 
 .generate-btn {
-  padding: 0 var(--space-xl);
+  width: 100%;
+  padding: var(--space-md) var(--space-lg);
+}
+
+@media (max-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .preview-card {

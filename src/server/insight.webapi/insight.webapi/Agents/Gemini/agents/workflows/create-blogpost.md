@@ -6,6 +6,8 @@ description: A multi-step workflow for research, draft, SEO-optimizze technical 
 
 ## Input
 - Topic
+- Audience
+- WritingStyle
 
 
 
@@ -20,6 +22,8 @@ description: A multi-step workflow for research, draft, SEO-optimizze technical 
 
 ## Input
 - Topic
+- Audience
+- WritingStyle
 
 ## Output
 - Research Artifacts
@@ -37,6 +41,8 @@ Provide expert domain analysis and feedback on the topic.
 
 ## Input
 - Topic
+- Audience
+- WritingStyle
 - Research Artifacts
 
 ## Output
@@ -62,15 +68,17 @@ Create outline of the document
 
 
 
-# Step 3 - Write Draft
+# Step 4 - Write Draft
 ## Description
-Create initial draft of the document
+Create initial draft of the document according to the audience and writing style
 
 **Skill required** - writer
 
 ## Input:
 
 * Outline
+* Audience
+* WritingStyle
 
 ## Output:
 * Draft Article

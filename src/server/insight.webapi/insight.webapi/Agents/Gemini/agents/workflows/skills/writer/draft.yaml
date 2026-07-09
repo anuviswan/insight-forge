@@ -51,4 +51,6 @@ structure:
         - Source 1
         - Source 2
         - Source 3
-notes: "Use this template as a starting point for drafts."
+notes: "Use this template as a starting point for drafts. Adapt language, examples, and detail level based on the specified Audience and WritingStyle."
+audience_adaptation: "Adjust technical depth and examples to match the target Audience (e.g., beginners may need more explanation; experts may prefer architectural details)"
+style_guidance: "Follow the WritingStyle guideline - Professional (formal, structured), Casual (conversational, friendly), or Technical (detailed, precise)"

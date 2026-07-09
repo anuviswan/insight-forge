@@ -38,19 +38,19 @@ export const useDocumentsStore = defineStore('documents', () => {
     }
   }
 
-  async function generateBlogPost(topic: string) {
+  async function generateBlogPost(topic: string, audience: string = '', writingStyle: string = '') {
     loading.value = true;
     error.value = null;
     try {
-      const post = await api.blogger.generate(topic);
+      const post = await api.blogger.generate(topic, audience, writingStyle);
       activePost.value = post;
-      
+
       // Add to recent history locally
       recentHistory.value.unshift({
         id: Math.random().toString(),
         title: post.title,
         type: 'blog',
-        date: '2 hours ago'
+        date: 'just now'
       });
       return post;
     } catch (err: any) {

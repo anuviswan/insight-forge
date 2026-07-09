@@ -2,6 +2,8 @@ description: "A multi-step workflow for research, draft, SEO-optimizze technical
 title: "Technical Blogger"
 input:
   - Topic
+  - Audience
+  - WritingStyle
 steps:
   - step: 1
     title: "Research"
@@ -12,6 +14,8 @@ steps:
       - research
     input:
       - Topic
+      - Audience
+      - WritingStyle
     output:
       - Research Artifacts
   - step: 2
@@ -20,6 +24,8 @@ steps:
     skills_required: []
     input:
       - Topic
+      - Audience
+      - WritingStyle
       - Research Artifacts
     output:
       - Domain Analysis Artifacts
@@ -35,11 +41,13 @@ steps:
       - Article Outline
   - step: 4
     title: "Write Draft"
-    description: "Create initial draft of the document"
+    description: "Create initial draft of the document according to the audience and writing style"
     skills_required:
       - writer
     input:
       - Outline
+      - Audience
+      - WritingStyle
     output:
       - Draft Article
   - step: 5

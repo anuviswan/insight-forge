@@ -193,17 +193,46 @@ export const api = {
   },
 
   blogger: {
-    async generate(topic: string): Promise<BlogPost> {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+    async generate(topic: string, audience: string = '', writingStyle: string = ''): Promise<BlogPost> {
+      try {
+        const response = await fetch(`${API_BASE_URL}/blogger/CreateBlogEntry`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            topic: topic.trim(),
+            audience: audience.trim(),
+            writingStyle: writingStyle.trim()
+          })
+        });
 
-      const title = topic.trim() || "The Future of AI in Design";
-      return {
-        title,
-        content: `# ${title}\n\nThe intersection of artificial intelligence and creative design is no longer a futuristic concept—it's the present reality of our industry. As we look ahead, the role of the designer is shifting from being the primary executor to becoming a creative director of algorithmic systems.\n\n### 1. Generative Co-creation\n\nAI tools like Midjourney and DALL-E have already disrupted the visual ideation process. However, the true transformation lies in **generative design systems** that can iterate through thousands of layout variations based on user data and accessibility requirements in real-time.\n\n> "Design is not just what it looks like and feels like. Design is how it works—and now, how it learns."\n\n### 2. The End of Repetitive Tasks\n\nFrom resizing assets to generating colour palettes that meet contrast ratios, AI is liberating designers from the mechanical parts of the job. This shift allows human creators to focus on **empathy, storytelling, and strategic brand thinking**—areas where machines still struggle to find nuance.\n\nAs we move into 2025, the successful designer will be the one who masters the 'prompt'—not just as a text string, but as a deep understanding of how to guide latent spaces toward meaningful human outcomes.`,
-        wordCount: 432,
-        readTime: "2m",
-        imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80"
-      };
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        // Parse the markdown content to extract title and calculate stats
+        const content = data.content || data.Content || '';
+        const lines = content.split('\n');
+        const titleLine = lines.find((line: string) => line.startsWith('#'));
+        const title = titleLine ? titleLine.replace(/^#+\s*/, '').trim() : topic;
+
+        const wordCount = content.split(/\s+/).length;
+        const readTime = Math.ceil(wordCount / 200) + 'm';
+
+        return {
+          title,
+          content,
+          wordCount,
+          readTime,
+          imageUrl: ""
+        };
+      } catch (error) {
+        console.error("Blog generation error:", error);
+        throw error;
+      }
     }
   },
 

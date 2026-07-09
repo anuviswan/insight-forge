@@ -11,8 +11,8 @@
     {
       "name": "backend",
       "runtimeExecutable": "dotnet",
-      "runtimeArgs": ["run", "--project", "src/server"],
-      "port": 7172
+      "runtimeArgs": ["run", "--project", "src/server/insight.webapi/insight.webapi/insight.webapi.csproj"],
+      "port": 5000
     }
   ]
 }
