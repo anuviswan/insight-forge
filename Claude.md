@@ -78,3 +78,21 @@ Explain:
 - Allow commits should follow conventional commits format
 - All solutions should compile and build without any error/warnings.
 - All Unit tests should pass
+
+# Claude Code Workflow
+
+## Command Execution
+
+When using Claude Code with this project:
+
+- **Never prepend `cd` to commands** — the working directory is already set to the project root
+- Run commands directly without changing directories
+  - ❌ Don't: `cd "D:\Source\insight-forge" && git checkout -b branch`
+  - ✅ Do: `git checkout -b branch`
+- This ensures permission patterns in settings.json match correctly and prevents unnecessary command chaining
+
+## Configuration Files
+
+- `.claude/settings.json` — Project-wide Claude Code settings (version-controlled)
+- `.claude/launch.json` — Dev server launch configurations (version-controlled)
+- `.claude/settings.local.json` — User-specific settings overrides (gitignored)
