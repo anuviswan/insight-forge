@@ -4,7 +4,7 @@ using Insight.Services.Interfaces.Ai;
 
 namespace Insight.Services.Ai.Gemini.AgentServices;
 
-public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto> metadataProvider) : IAgent
+public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto> metadataProvider) : IBlogAgent, IResearchAgent, IAgentOrchestrator
 {
     private const string AgentName = "Blog Writer Agent";
     private const string BlogWorkflow = "create-blogpost";

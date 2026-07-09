@@ -19,6 +19,9 @@ public class ResearchController(IResearchService researchService) : ControllerBa
     /// 500 Internal Server Error - Research workflow execution failed
     /// </returns>
     [HttpPost("ConductResearch")]
+    [ProducesResponseType(typeof(ResearchResultsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> ConductResearch([FromBody] ConductResearchRequest request, CancellationToken cancellationToken)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.Topic))

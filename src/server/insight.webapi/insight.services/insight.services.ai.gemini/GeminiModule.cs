@@ -28,6 +28,11 @@ public class GeminiModule : IModule
         // Register metadata providers and agent. Use YAML provider as the keyed default for Gemini.
         services.AddKeyedScoped<IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto>, YamlAgentMetadataProvider>(ModuleName);
         services.AddScoped<IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto>, MarkdownAgentMetadataProvider>();
-        services.AddScoped<IAgent, GeminiAgent>();
+
+        // Register GeminiAgent implementing specific interfaces following SRP
+        services.AddScoped<GeminiAgent>();
+        services.AddScoped<IBlogAgent>(sp => sp.GetRequiredService<GeminiAgent>());
+        services.AddScoped<IResearchAgent>(sp => sp.GetRequiredService<GeminiAgent>());
+        services.AddScoped<IAgentOrchestrator>(sp => sp.GetRequiredService<GeminiAgent>());
     }
 }
