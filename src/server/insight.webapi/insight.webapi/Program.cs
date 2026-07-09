@@ -42,6 +42,7 @@ public class Program
 
         RegisterModules(builder.Services, builder.Configuration);
         builder.Services.AddScoped<IBlogService, BlogService>();
+        builder.Services.AddScoped<IResearchService, ResearchService>();
 
         var app = builder.Build();
 

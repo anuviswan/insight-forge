@@ -5,4 +5,5 @@ public interface IAgent
     Task<string> CreateAgent(string agentName,CancellationToken cancellationToken = default);
     Task<string> CheckIfAgentExists(string agentName, CancellationToken cancellationToken = default);
     Task<string> CreateBlogPostAsync(string topic, string audience, string writingStyle, CancellationToken cancellationToken = default);
+    Task<string> ConductResearchAsync(string topic, string audience, string writingStyle, CancellationToken cancellationToken = default);
 }
