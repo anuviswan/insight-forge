@@ -1,0 +1,64 @@
+description: "Blog creation workflow using pre-existing research artifacts (skips research step)"
+title: "Technical Blogger with Existing Research"
+input:
+  - Topic
+  - Audience
+  - WritingStyle
+  - Research Artifacts
+steps:
+  - step: 1
+    title: "Domain Analysis"
+    description: "Provide expert domain analysis and feedback on the topic. If topic is .Net related, use skill dotnet-evangelist"
+    skills_required: []
+    input:
+      - Topic
+      - Audience
+      - WritingStyle
+      - Research Artifacts
+    output:
+      - Domain Analysis Artifacts
+  - step: 2
+    title: "Create Outline"
+    description: "Create outline of the document"
+    skills_required:
+      - outline
+    input:
+      - Research Artifacts
+      - Domain Expertise
+    output:
+      - Article Outline
+  - step: 3
+    title: "Write Draft"
+    description: "Create initial draft of the document according to the audience and writing style"
+    skills_required:
+      - writer
+    input:
+      - Outline
+      - Audience
+      - WritingStyle
+      - Research Artifacts
+    output:
+      - Draft Article
+  - step: 4
+    title: "SEO Optimization"
+    description: "SEO Optimize the article draft"
+    skills_required:
+      - seo
+    input:
+      - Draft Article
+    output:
+      - SEO Optimized Article
+  - step: 5
+    title: "Originality check"
+    description: "Review the article for originality and refine until satisfied"
+    skills_required:
+      - originality-check
+    process:
+      - "Review the Article until originality check succeeds"
+      - "Use review feedback for refining article"
+  - step: 6
+    title: "Final Output"
+    description: "Produce the final output"
+
+output_folders:
+  - ./output

@@ -4,10 +4,11 @@ using Insight.Services.Interfaces.Ai;
 
 namespace Insight.Services.Ai.Gemini.AgentServices;
 
-public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto> metadataProvider) : IAgent
+public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto> metadataProvider) : IBlogAgent, IResearchAgent, IAgentOrchestrator
 {
     private const string AgentName = "Blog Writer Agent";
-    private const string Workflow = "create-blogpost";
+    private const string BlogWorkflow = "create-blogpost";
+    private const string ResearchWorkflow = "research-only";
 
     public Task<string> CheckIfAgentExists(string agentName, CancellationToken cancellationToken = default)
     {
@@ -35,9 +36,22 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
 
         var input = BuildPrompt(topic, audience, writingStyle);
 
-        var agentDef = metadataProvider.GetAgent("Antigravity");
+        var agentDef = metadataProvider.GetAgent(AgentName);
 
-        var result = await apiClient.RunAgentWorkflowAsync(AgentName, Workflow, input, agentDef, cancellationToken);
+        var result = await apiClient.RunAgentWorkflowAsync(AgentName, BlogWorkflow, input, agentDef, cancellationToken).ConfigureAwait(false);
+        return result ?? string.Empty;
+    }
+
+    public async Task<string> ConductResearchAsync(string topic, string audience, string writingStyle, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(topic))
+            throw new ArgumentException("Topic must be provided", nameof(topic));
+
+        var input = BuildResearchPrompt(topic, audience, writingStyle);
+
+        var agentDef = metadataProvider.GetAgent(AgentName);
+
+        var result = await apiClient.RunAgentWorkflowAsync(AgentName, ResearchWorkflow, input, agentDef, cancellationToken).ConfigureAwait(false);
         return result ?? string.Empty;
     }
 
@@ -52,6 +66,21 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
             prompt += $"\n\nWriting Style/Tone: {writingStyle.Trim()}";
 
         prompt += "\n\nProvide the complete blog post in well-formatted Markdown.";
+
+        return prompt;
+    }
+
+    private static string BuildResearchPrompt(string topic, string audience, string writingStyle)
+    {
+        var prompt = $"Conduct comprehensive research on '{topic}'";
+
+        if (!string.IsNullOrWhiteSpace(audience))
+            prompt += $"\n\nIntended Audience: {audience.Trim()}";
+
+        if (!string.IsNullOrWhiteSpace(writingStyle))
+            prompt += $"\n\nWriting Style/Tone: {writingStyle.Trim()}";
+
+        prompt += "\n\nProvide structured research artifacts including key findings, best practices, code samples, common pitfalls, and references.";
 
         return prompt;
     }
