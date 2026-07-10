@@ -19,4 +19,16 @@ public class BloggerController(IBlogService blogService) : ControllerBase
         return Ok(new BlogEntryResponse { Content = content });
     }
 
+    [HttpPost("CreateBlogEntryWithResearch")]
+    public async Task<IActionResult> CreateBlogEntryWithResearch([FromBody] CreateBlogWithResearchRequest request, CancellationToken cancellationToken)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.Topic))
+            return BadRequest("Topic is required.");
+
+        if (string.IsNullOrWhiteSpace(request.ResearchArtifacts))
+            return BadRequest("Research artifacts are required.");
+
+        var content = await blogService.CreateBlogEntryWithResearchAsync(request.Topic, request.Audience, request.WritingStyle, request.ResearchArtifacts, cancellationToken);
+        return Ok(new BlogEntryResponse { Content = content });
+    }
 }

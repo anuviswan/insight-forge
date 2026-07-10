@@ -9,4 +9,9 @@ public class BlogService(IBlogAgent blogAgent) : IBlogService
     {
         return await blogAgent.CreateBlogPostAsync(topic, audience, writingStyle, cancellationToken).ConfigureAwait(false);
     }
+
+    public async Task<string> CreateBlogEntryWithResearchAsync(string topic, string audience, string writingStyle, string researchArtifacts, CancellationToken cancellationToken = default)
+    {
+        return await blogAgent.CreateBlogPostWithResearchAsync(topic, audience, writingStyle, researchArtifacts, cancellationToken).ConfigureAwait(false);
+    }
 }
