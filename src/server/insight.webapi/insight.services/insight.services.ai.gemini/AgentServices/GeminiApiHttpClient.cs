@@ -11,6 +11,7 @@ public class GeminiApiHttpClient : IGeminiApiClient
 {
     private readonly HttpClient _http;
     private readonly ILogger<GeminiApiHttpClient> _logger;
+    private const string BaseAgentModel = "antigravity-preview-05-2026";
 
     public GeminiApiHttpClient(HttpClient http, IConfiguration config, ILogger<GeminiApiHttpClient> logger)
     {
@@ -20,47 +21,26 @@ public class GeminiApiHttpClient : IGeminiApiClient
         var apiKey = config["Antigravity:ApiKey"];
         if (!string.IsNullOrWhiteSpace(apiKey))
         {
-            if (!_http.DefaultRequestHeaders.Contains("Authorization"))
-                _http.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+            if (!_http.DefaultRequestHeaders.Contains("x-goog-api-key"))
+                _http.DefaultRequestHeaders.Add("x-goog-api-key", apiKey);
         }
     }
 
-    public async Task<string?> RunAgentWorkflowAsync(string agentName, string workflow, string input, AgentDefinitionDto? agentDefinition = null, CancellationToken cancellationToken = default)
+    public async Task<bool> AgentExistsAsync(string agentId, CancellationToken cancellationToken = default)
     {
-        var payload = new { agent = agentName, workflow, input, agentDefinition };
-
-        HttpResponseMessage resp;
         try
         {
-            resp = await _http.PostAsJsonAsync("interactions", payload, cancellationToken);
+            var resp = await _http.GetAsync($"agents/{agentId}", cancellationToken);
+            return resp.IsSuccessStatusCode;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to call Antigravity API");
-            throw;
+            _logger.LogError(ex, "Failed to check if agent exists");
+            return false;
         }
-
-        if (!resp.IsSuccessStatusCode)
-        {
-            var body = await resp.Content.ReadAsStringAsync(cancellationToken);
-            _logger.LogWarning("Antigravity API returned {Status}: {Body}", resp.StatusCode, body);
-            throw new HttpRequestException($"Antigravity API returned {resp.StatusCode}");
-        }
-
-        using var stream = await resp.Content.ReadAsStreamAsync(cancellationToken);
-        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-        var root = doc.RootElement;
-
-        if (root.TryGetProperty("output", out var outEl) && outEl.ValueKind == JsonValueKind.String)
-            return outEl.GetString();
-
-        if (root.TryGetProperty("result", out var resEl) && resEl.ValueKind == JsonValueKind.String)
-            return resEl.GetString();
-
-        return root.ToString();
     }
 
-    public async Task<string?> CreateManagedAgentAsync(string agentName, string systemInstruction, string input, AgentDefinitionDto? agentDefinition = null, CancellationToken cancellationToken = default)
+    public async Task<string?> CreateManagedAgentAsync(string agentId, string systemInstruction, AgentDefinitionDto? agentDefinition = null, CancellationToken cancellationToken = default)
     {
         var environmentSources = new List<object>();
 
@@ -74,6 +54,19 @@ public class GeminiApiHttpClient : IGeminiApiClient
                     target = ".agents/AGENTS.md",
                     content = agentDefinition.AgentsMd
                 });
+            }
+
+            if (agentDefinition.Workflows?.Count > 0)
+            {
+                foreach (var workflow in agentDefinition.Workflows)
+                {
+                    environmentSources.Add(new
+                    {
+                        type = "inline",
+                        target = $".agents/workflows/{workflow.Name}.yaml",
+                        content = workflow.Content
+                    });
+                }
             }
 
             if (agentDefinition.Skills?.Count > 0)
@@ -92,10 +85,10 @@ public class GeminiApiHttpClient : IGeminiApiClient
 
         var payload = new
         {
-            agent = agentName,
-            input = input,
+            id = agentId,
+            base_agent = BaseAgentModel,
             system_instruction = systemInstruction,
-            environment = new
+            base_environment = new
             {
                 type = "remote",
                 sources = environmentSources
@@ -105,7 +98,7 @@ public class GeminiApiHttpClient : IGeminiApiClient
         HttpResponseMessage resp;
         try
         {
-            resp = await _http.PostAsJsonAsync("interactions", payload, cancellationToken);
+            resp = await _http.PostAsJsonAsync("agents", payload, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -124,11 +117,47 @@ public class GeminiApiHttpClient : IGeminiApiClient
         using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
         var root = doc.RootElement;
 
-        if (root.TryGetProperty("agent", out var agentEl) && agentEl.ValueKind == JsonValueKind.String)
-            return agentEl.GetString();
-
         if (root.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String)
             return idEl.GetString();
+
+        return agentId;
+    }
+
+    public async Task<string?> RunAgentInteractionAsync(string agentId, string input, CancellationToken cancellationToken = default)
+    {
+        var payload = new
+        {
+            agent = agentId,
+            input = input
+        };
+
+        HttpResponseMessage resp;
+        try
+        {
+            resp = await _http.PostAsJsonAsync("interactions", payload, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to run agent interaction");
+            throw;
+        }
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            var body = await resp.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogWarning("Gemini API returned {Status}: {Body}", resp.StatusCode, body);
+            throw new HttpRequestException($"Gemini API returned {resp.StatusCode}");
+        }
+
+        using var stream = await resp.Content.ReadAsStreamAsync(cancellationToken);
+        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+        var root = doc.RootElement;
+
+        if (root.TryGetProperty("output", out var outEl) && outEl.ValueKind == JsonValueKind.String)
+            return outEl.GetString();
+
+        if (root.TryGetProperty("result", out var resEl) && resEl.ValueKind == JsonValueKind.String)
+            return resEl.GetString();
 
         return root.ToString();
     }

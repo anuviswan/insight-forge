@@ -7,25 +7,29 @@ namespace Insight.Services.Ai.Gemini.AgentServices;
 public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto> metadataProvider) : IBlogAgent, IAgentOrchestrator
 {
     private const string AgentName = "Blog Writer Agent";
-    private const string BlogWorkflow = "create-blogpost";
+    private const string AgentId = "blog-writer-agent";
 
-    public Task<string> CheckIfAgentExists(string agentName, CancellationToken cancellationToken = default)
+    public async Task<string> CheckIfAgentExists(string agentId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrWhiteSpace(agentId))
+            throw new ArgumentException("Agent ID must be provided", nameof(agentId));
+
+        var exists = await apiClient.AgentExistsAsync(agentId, cancellationToken);
+        return exists ? agentId : string.Empty;
     }
 
-    public async Task<string> CreateAgent(string agentName, CancellationToken cancellationToken = default)
+    public async Task<string> CreateAgent(string agentId, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(agentName))
-            throw new ArgumentException("Agent name must be provided", nameof(agentName));
+        if (string.IsNullOrWhiteSpace(agentId))
+            throw new ArgumentException("Agent ID must be provided", nameof(agentId));
 
-        var agentDef = metadataProvider.GetAgent(agentName);
+        var agentDef = metadataProvider.GetAgent(AgentName);
         if (agentDef == null)
-            throw new InvalidOperationException($"Agent definition not found for '{agentName}'");
+            throw new InvalidOperationException($"Agent definition not found for '{AgentName}'");
 
-        var systemInstruction = agentDef.Content ?? $"You are the {agentName} agent.";
-        var result = await apiClient.CreateManagedAgentAsync(agentName, systemInstruction, "", agentDef, cancellationToken);
-        return result ?? string.Empty;
+        var systemInstruction = agentDef.Content ?? $"You are the {AgentName} agent. Execute the create-blogpost workflow to generate professional technical blog posts with research integration, domain analysis, and content quality optimization.";
+        var result = await apiClient.CreateManagedAgentAsync(agentId, systemInstruction, agentDef, cancellationToken);
+        return result ?? agentId;
     }
 
     public async Task<string> CreateBlogPostAsync(string topic, string audience, string writingStyle, CancellationToken cancellationToken = default)
@@ -33,11 +37,16 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
         if (string.IsNullOrWhiteSpace(topic))
             throw new ArgumentException("Topic must be provided", nameof(topic));
 
+        // Ensure managed agent exists
+        var existsResult = await CheckIfAgentExists(AgentId, cancellationToken);
+        if (string.IsNullOrEmpty(existsResult))
+        {
+            await CreateAgent(AgentId, cancellationToken);
+        }
+
         var input = BuildBlogPrompt(topic, audience, writingStyle);
 
-        var agentDef = metadataProvider.GetAgent(AgentName);
-
-        var result = await apiClient.RunAgentWorkflowAsync(AgentName, BlogWorkflow, input, agentDef, cancellationToken).ConfigureAwait(false);
+        var result = await apiClient.RunAgentInteractionAsync(AgentId, input, cancellationToken).ConfigureAwait(false);
         return result ?? string.Empty;
     }
 
