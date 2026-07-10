@@ -29,20 +29,7 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
         return result ?? string.Empty;
     }
 
-    public async Task<string> CreateBlogPostAsync(string topic, string audience, string writingStyle, CancellationToken cancellationToken = default)
-    {
-        if (string.IsNullOrWhiteSpace(topic))
-            throw new ArgumentException("Topic must be provided", nameof(topic));
-
-        var input = BuildBlogPrompt(topic, audience, writingStyle, researchArtifacts: null);
-
-        var agentDef = metadataProvider.GetAgent(AgentName);
-
-        var result = await apiClient.RunAgentWorkflowAsync(AgentName, BlogWorkflow, input, agentDef, cancellationToken).ConfigureAwait(false);
-        return result ?? string.Empty;
-    }
-
-    public async Task<string> CreateBlogPostWithResearchAsync(string topic, string audience, string writingStyle, string researchArtifacts, CancellationToken cancellationToken = default)
+    public async Task<string> CreateBlogPostAsync(string topic, string audience, string writingStyle, string researchArtifacts, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(topic))
             throw new ArgumentException("Topic must be provided", nameof(topic));
@@ -71,12 +58,10 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
         return result ?? string.Empty;
     }
 
-    private static string BuildBlogPrompt(string topic, string audience, string writingStyle, string? researchArtifacts)
+    private static string BuildBlogPrompt(string topic, string audience, string writingStyle, string researchArtifacts)
     {
-        var prompt = string.IsNullOrWhiteSpace(researchArtifacts)
-            ? $"Create a comprehensive blog post about '{topic}'."
-            : $"Create a professional blog post about '{topic}' using the provided research findings.\n\n" +
-              $"Research Artifacts:\n{researchArtifacts}\n\n";
+        var prompt = $"Create a professional blog post about '{topic}' using the provided research findings.\n\n" +
+                     $"Research Artifacts:\n{researchArtifacts}\n\n";
 
         if (!string.IsNullOrWhiteSpace(audience))
             prompt += $"Intended Audience: {audience.Trim()}\n\n";

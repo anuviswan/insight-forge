@@ -10,17 +10,7 @@ namespace insight.webapi.Controllers;
 public class BloggerController(IBlogService blogService) : ControllerBase
 {
     [HttpPost("CreateBlogEntry")]
-    public async Task<IActionResult> CreateBlogEntry([FromBody] CreateBlogRequest request, CancellationToken cancellationToken)
-    {
-        if (request == null || string.IsNullOrWhiteSpace(request.Topic))
-            return BadRequest("Topic is required.");
-
-        var content = await blogService.CreateBlogEntryAsync(request.Topic, request.Audience, request.WritingStyle, cancellationToken);
-        return Ok(new BlogEntryResponse { Content = content });
-    }
-
-    [HttpPost("CreateBlogEntryWithResearch")]
-    public async Task<IActionResult> CreateBlogEntryWithResearch([FromBody] CreateBlogWithResearchRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateBlogEntry([FromBody] CreateBlogWithResearchRequest request, CancellationToken cancellationToken)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.Topic))
             return BadRequest("Topic is required.");
@@ -28,7 +18,7 @@ public class BloggerController(IBlogService blogService) : ControllerBase
         if (string.IsNullOrWhiteSpace(request.ResearchArtifacts))
             return BadRequest("Research artifacts are required.");
 
-        var content = await blogService.CreateBlogEntryWithResearchAsync(request.Topic, request.Audience, request.WritingStyle, request.ResearchArtifacts, cancellationToken);
+        var content = await blogService.CreateBlogEntryAsync(request.Topic, request.Audience, request.WritingStyle, request.ResearchArtifacts, cancellationToken);
         return Ok(new BlogEntryResponse { Content = content });
     }
 }
