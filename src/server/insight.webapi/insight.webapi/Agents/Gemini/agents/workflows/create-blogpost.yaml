@@ -20,7 +20,14 @@ steps:
       - Research Artifacts
   - step: 2
     title: "Domain Analysis"
-    description: "Provide expert domain analysis and feedback on the topic. If topic is .Net related, use skill dotnet-evangelist"
+    description: |
+      Provide expert domain analysis and feedback on the topic considering content quality requirements:
+      - Analyze research artifacts for key findings and takeaways
+      - Identify if this topic requires code examples (and which languages)
+      - Flag if architectural diagrams would help reader understanding
+      - Note common pitfalls and best practices to highlight
+      - Recommend structure for executive summary and table of contents
+      - If topic is .Net related, use skill dotnet-evangelist for domain expertise
     skills_required: []
     input:
       - Topic
@@ -31,7 +38,14 @@ steps:
       - Domain Analysis Artifacts
   - step: 3
     title: "Create Outline"
-    description: "Create outline of the document"
+    description: |
+      Create a comprehensive outline of the document with the following structure:
+      - Start with a clear, compelling title
+      - Include major sections with logical flow (simple to complex)
+      - Ensure coverage of all research findings
+      - Plan for executive summary after title
+      - Structure for table of contents
+      - Identify sections requiring code snippets or diagrams
     skills_required:
       - outline
     input:
@@ -41,7 +55,24 @@ steps:
       - Article Outline
   - step: 4
     title: "Write Draft"
-    description: "Create initial draft of the document according to the audience and writing style"
+    description: |
+      Create initial draft of the document with explicit content quality requirements:
+
+      Structure:
+      - Start with a clear, descriptive blog title
+      - Include executive summary (2-3 paragraphs with key takeaways from research)
+      - Add table of contents listing all major sections
+      - Use appropriate heading hierarchy (H2 for sections, H3 for subsections)
+
+      Content Enhancements:
+      - Include code snippets (with language tags: ```csharp, ```javascript, etc.) when demonstrating concepts or best practices
+      - Use Mermaid diagrams (```mermaid blocks) to illustrate architecture, workflows, or conceptual relationships
+      - Incorporate research findings with proper attribution throughout
+      - End with References section citing research sources
+
+      Audience & Style:
+      - Adapt technical depth and examples for specified Audience
+      - Follow specified WritingStyle (Professional, Casual, Technical)
     skills_required:
       - writer
     input:
