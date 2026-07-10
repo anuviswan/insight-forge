@@ -3,7 +3,6 @@ using Insight.Services.Ai.Gemini.Types;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
-using System.Text.Json;
 
 namespace Insight.Services.Ai.Gemini.AgentServices;
 
@@ -113,14 +112,8 @@ public class GeminiApiHttpClient : IGeminiApiClient
             throw new HttpRequestException($"Gemini API returned {resp.StatusCode}");
         }
 
-        using var stream = await resp.Content.ReadAsStreamAsync(cancellationToken);
-        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-        var root = doc.RootElement;
-
-        if (root.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String)
-            return idEl.GetString();
-
-        return agentId;
+        var response = await resp.Content.ReadFromJsonAsync<GeminiAgentResponse>(cancellationToken: cancellationToken);
+        return response?.Id ?? agentId;
     }
 
     public async Task<string?> RunAgentInteractionAsync(string agentId, string input, CancellationToken cancellationToken = default)
@@ -149,16 +142,7 @@ public class GeminiApiHttpClient : IGeminiApiClient
             throw new HttpRequestException($"Gemini API returned {resp.StatusCode}");
         }
 
-        using var stream = await resp.Content.ReadAsStreamAsync(cancellationToken);
-        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-        var root = doc.RootElement;
-
-        if (root.TryGetProperty("output", out var outEl) && outEl.ValueKind == JsonValueKind.String)
-            return outEl.GetString();
-
-        if (root.TryGetProperty("result", out var resEl) && resEl.ValueKind == JsonValueKind.String)
-            return resEl.GetString();
-
-        return root.ToString();
+        var response = await resp.Content.ReadFromJsonAsync<GeminiInteractionResponse>(cancellationToken: cancellationToken);
+        return response?.Output ?? response?.Result;
     }
 }
