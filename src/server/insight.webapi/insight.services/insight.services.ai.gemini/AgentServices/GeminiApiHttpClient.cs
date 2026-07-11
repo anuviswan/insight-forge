@@ -49,13 +49,13 @@ public class GeminiApiHttpClient : IGeminiApiClient
 
         if (agentDefinition != null)
         {
-            if (!string.IsNullOrWhiteSpace(agentDefinition.AgentsMd))
+            if (!string.IsNullOrWhiteSpace(agentDefinition.Specification))
             {
                 environmentSources.Add(new
                 {
                     type = "inline",
                     target = ".agents/AGENTS.md",
-                    content = agentDefinition.AgentsMd
+                    content = agentDefinition.Specification
                 });
             }
 
@@ -115,8 +115,8 @@ public class GeminiApiHttpClient : IGeminiApiClient
         if (agentDefinition != null)
         {
             Console.WriteLine($"  Name: {agentDefinition.Name}");
-            Console.WriteLine($"  AgentsMd Present: {!string.IsNullOrWhiteSpace(agentDefinition.AgentsMd)}");
-            Console.WriteLine($"  AgentsMd Length: {agentDefinition.AgentsMd?.Length ?? 0}");
+            Console.WriteLine($"  Specification Present: {!string.IsNullOrWhiteSpace(agentDefinition.Specification)}");
+            Console.WriteLine($"  Specification Length: {agentDefinition.Specification?.Length ?? 0}");
             Console.WriteLine($"  Workflows: {agentDefinition.Workflows?.Count ?? 0}");
             if (agentDefinition.Workflows?.Count > 0)
             {

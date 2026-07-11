@@ -141,7 +141,7 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
             if (agents.Any())
             {
                 var agent = agents[0];
-                agent.AgentsMd = content;
+                agent.Specification = content;
                 agent.Workflows ??= new List<WorkflowDto>();
                 agent.Skills ??= new List<SkillDto>();
 
@@ -265,7 +265,7 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
 
             foreach (var agent in agents)
             {
-                agent.AgentsMd = content;
+                agent.Specification = content;
 
                 string key = !string.IsNullOrWhiteSpace(agent.Name)
                     ? agent.Name

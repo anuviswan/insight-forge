@@ -42,8 +42,8 @@ public class GeminiAgent(IGeminiApiClient apiClient, [FromKeyedServices("Gemini"
     {
         var missingComponents = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(agentDef.AgentsMd))
-            missingComponents.Add("AgentsMd (agents definition)");
+        if (string.IsNullOrWhiteSpace(agentDef.Specification))
+            missingComponents.Add("Specification (agent specification)");
 
         if (agentDef.Workflows == null || agentDef.Workflows.Count == 0)
             missingComponents.Add("Workflows (0 workflows loaded)");

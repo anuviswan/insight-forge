@@ -142,13 +142,13 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
                 var agentsMdAlt = Path.Combine(root, "AGENTS.md");
                 if (File.Exists(agentsMd))
                 {
-                    agent.AgentsMd = await File.ReadAllTextAsync(agentsMd, cancellationToken);
-                    Console.WriteLine($"[YAML Deserialization] Loaded agents.md: {agent.AgentsMd?.Length ?? 0} chars");
+                    agent.Specification = await File.ReadAllTextAsync(agentsMd, cancellationToken);
+                    Console.WriteLine($"[YAML Deserialization] Loaded agents.md: {agent.Specification?.Length ?? 0} chars");
                 }
                 else if (File.Exists(agentsMdAlt))
                 {
-                    agent.AgentsMd = await File.ReadAllTextAsync(agentsMdAlt, cancellationToken);
-                    Console.WriteLine($"[YAML Deserialization] Loaded AGENTS.md: {agent.AgentsMd?.Length ?? 0} chars");
+                    agent.Specification = await File.ReadAllTextAsync(agentsMdAlt, cancellationToken);
+                    Console.WriteLine($"[YAML Deserialization] Loaded AGENTS.md: {agent.Specification?.Length ?? 0} chars");
                 }
                 else
                 {
@@ -172,11 +172,11 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
                 var agentsMdAlt = Path.Combine(root, "AGENTS.md");
                 if (File.Exists(agentsMd))
                 {
-                    mapped.AgentsMd = await File.ReadAllTextAsync(agentsMd, cancellationToken);
+                    mapped.Specification = await File.ReadAllTextAsync(agentsMd, cancellationToken);
                 }
                 else if (File.Exists(agentsMdAlt))
                 {
-                    mapped.AgentsMd = await File.ReadAllTextAsync(agentsMdAlt, cancellationToken);
+                    mapped.Specification = await File.ReadAllTextAsync(agentsMdAlt, cancellationToken);
                 }
 
                 return mapped;
@@ -270,11 +270,11 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
                     var agentsMdAlt = Path.Combine(root, "AGENTS.md");
                     if (File.Exists(agentsMd))
                     {
-                        agent.AgentsMd = File.ReadAllText(agentsMd);
+                        agent.Specification = File.ReadAllText(agentsMd);
                     }
                     else if (File.Exists(agentsMdAlt))
                     {
-                        agent.AgentsMd = File.ReadAllText(agentsMdAlt);
+                        agent.Specification = File.ReadAllText(agentsMdAlt);
                     }
 
                     result[key] = agent;

@@ -14,8 +14,8 @@ public class AgentDefinitionDto
     /// <summary>Agent responsibilities (used in system instruction).</summary>
     public List<string>? Responsibilities { get; set; }
 
-    /// <summary>Agent definition markdown (sent to Gemini as .agents/AGENTS.md).</summary>
-    public string? AgentsMd { get; set; }
+    /// <summary>Agent specification markdown (sent to Gemini as .agents/AGENTS.md).</summary>
+    public string? Specification { get; set; }
 
     /// <summary>Loaded workflow definitions (sent to Gemini as .agents/workflows/*.yaml).</summary>
     public List<WorkflowDto>? Workflows { get; set; }
