@@ -18,5 +18,4 @@ public class BloggerController(IBlogService blogService) : ControllerBase
         var content = await blogService.CreateBlogEntryAsync(request.Topic, request.Audience, request.WritingStyle, cancellationToken);
         return Ok(new BlogEntryResponse { Content = content });
     }
-
 }

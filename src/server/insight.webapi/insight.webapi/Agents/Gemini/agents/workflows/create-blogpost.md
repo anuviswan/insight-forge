@@ -1,116 +1,148 @@
 ---
-description: A multi-step workflow for research, draft, SEO-optimizze technical articles
+description: Unified workflow for research-driven blog post generation with content quality requirements
 ---
 
-# Technical Blogger
+# Technical Blogger - Unified Workflow
 
-## Input
-- Topic
-- Audience
-- WritingStyle
+## Purpose
 
-
-
-# Step 1 - Research
-
-## Description 
-- Do extensive research on the topic
-- Ask Questions if details are missing. 
-- NEVER ASSUME
-
-**Skills required** - research
-
-## Input
-- Topic
-- Audience
-- WritingStyle
-
-## Output
-- Research Artifacts
-
-
-
-
-
-# Step 2 - Domain Analysis
-
-## Description
-Provide expert domain analysis and feedback on the topic.
-
- - if topic is .Net related, use skill dotnet-evangelist
-
-## Input
-- Topic
-- Audience
-- WritingStyle
-- Research Artifacts
-
-## Output
-- Domain Analysis Artifacts
-
-
-
-
-# Step 3 - Create Outline
-## Description
-Create outline of the document
-
-**Skill required** - outline
+Generate comprehensive, high-quality technical blog posts with integrated research, domain analysis, and content quality optimization in a single end-to-end workflow.
 
 ## Input
 
-- Research Summary
-- Domain Expertise
+- Topic: Subject to research and write about
+- Audience: Target reader profile (Beginners, Intermediate, Experts/Architects)
+- WritingStyle: Tone to use (Professional, Casual, Technical)
 
-## Output
-- Article Outline
+## Workflow Steps
 
+### Step 1 - Research
+**Description:** Conduct extensive research on the topic
 
+**Responsibilities:**
+- Gather comprehensive information from multiple sources
+- Ask clarifying questions if details are missing
+- NEVER make assumptions
+- Document key findings, best practices, code examples, common pitfalls
+- Collect references and sources
 
+**Skills Required:** research
 
-# Step 4 - Write Draft
-## Description
-Create initial draft of the document according to the audience and writing style
+**Output:** Research Artifacts
 
-**Skill required** - writer
+---
 
-## Input:
+### Step 2 - Domain Analysis
+**Description:** Analyze research findings and provide expert feedback
 
-* Outline
-* Audience
-* WritingStyle
+**Responsibilities:**
+- Extract key findings and takeaways from research
+- Identify if code examples are needed (and which languages)
+- Flag if architectural diagrams would help understanding
+- Note common pitfalls and best practices to highlight
+- Recommend structure for executive summary and table of contents
+- For .Net topics: use dotnet-evangelist skill for domain expertise
 
-## Output:
-* Draft Article
+**Output:** Domain Analysis Artifacts
 
+---
 
+### Step 3 - Create Outline
+**Description:** Transform research into logical article structure
 
-## Step 4 - SEO Optimization
-## Description
-SEO Optimize the article draft
+**Responsibilities:**
+- Create clear, compelling title
+- Organize sections from simple to complex
+- Include all research findings in logical flow
+- Plan executive summary section
+- Structure table of contents
+- Identify sections requiring code snippets or diagrams
 
-**Skills Required** - seo
+**Skills Required:** outline
 
-## Input
-Draft Artice
+**Output:** Article Outline
 
-## Ouput
-SEO Optimized Article
+---
 
+### Step 4 - Write Draft
+**Description:** Generate initial draft with content quality requirements
 
-# Step 5 - Orginality check
-## Description
-Review the article for originality and refine until satisfied
+**Structure Requirements:**
+- Clear, descriptive blog title
+- Executive summary (2-3 paragraphs with key takeaways)
+- Table of contents
+- Proper heading hierarchy (H2 for sections, H3 for subsections)
 
-**Skill required** - originality-check
+**Content Enhancements:**
+- Code snippets with language tags when demonstrating concepts
+- Mermaid diagrams for architecture/workflows/relationships
+- Research findings with proper attribution
+- References section citing sources
 
-## Process
-- Review the Article until orginality check suceeds
-- Use review feedbacks for refining article
+**Audience Adaptation:**
+- Adjust technical depth for target audience
+- Use appropriate examples and terminology
+- Follow specified writing style
 
-# Step 6 - Final Output
-## Description
-Produce the final output
+**Skills Required:** writer
 
+**Output:** Draft Article
 
+---
 
+### Step 5 - SEO Optimization
+**Description:** Optimize article for search engines
+
+**Skills Required:** seo
+
+**Output:** SEO Optimized Article
+
+---
+
+### Step 6 - Originality Check
+**Description:** Review for originality and refine content
+
+**Process:**
+- Review article for originality
+- Use feedback to refine as needed
+- Repeat until originality check succeeds
+
+**Skills Required:** originality-check
+
+---
+
+### Step 7 - Final Output
+**Description:** Produce the final blog post
+
+**Deliverables:**
+- Complete, production-ready blog post
+- Well-formatted Markdown
+- All content quality requirements met
+
+---
+
+## Quality Gate - Content Requirements (PR3)
+
+All generated blogs MUST include:
+
+✅ **Structure**
+- Clear, descriptive title (#30)
+- Executive summary with key takeaways (#31)
+- Table of contents (#32)
+- Appropriate section headings (H2, H3) (#33)
+
+✅ **Content Elements**
+- Code snippets with language tags (#36)
+- Mermaid diagrams when appropriate (#37)
+- References section
+- Proper attribution of research
+
+---
+
+## Benefits of Unified Workflow
+
+- **Single Round Trip:** Research and blog generation in one API call
+- **Optimized Token Usage:** No redundant research processing
+- **Integrated Quality:** Research findings inform every step
+- **Professional Output:** Consistent application of content quality standards
+- **Traceable Content:** Clear lineage from research to final blog
