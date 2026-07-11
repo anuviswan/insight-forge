@@ -127,6 +127,14 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
                 agent.Content = yamlText;
                 agent.Workflows ??= new List<WorkflowDto>();
                 agent.Skills ??= new List<SkillDto>();
+
+                // Copy root-level workflows to agent if agent doesn't have them
+                if ((agent.WorkflowNames == null || !agent.WorkflowNames.Any()) && collection.Workflows?.Any() == true)
+                {
+                    agent.WorkflowNames = collection.Workflows;
+                    Console.WriteLine($"[YAML Deserialization] Copied root-level workflows to agent: {string.Join(", ", collection.Workflows)}");
+                }
+
                 Console.WriteLine($"[YAML Deserialization] Before PopulateSkillsAndWorkflows - Skills: {agent.SkillNames?.Count() ?? 0}, Workflows: {agent.WorkflowNames?.Count() ?? 0}");
                 PopulateSkillsAndWorkflows(agent);
                 Console.WriteLine($"[YAML Deserialization] After PopulateSkillsAndWorkflows - Skills: {agent.Skills?.Count ?? 0}, Workflows: {agent.Workflows?.Count ?? 0}");
