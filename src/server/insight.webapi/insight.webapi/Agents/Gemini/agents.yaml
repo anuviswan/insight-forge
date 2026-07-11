@@ -15,8 +15,6 @@ agents:
 
 workflows:
   - create-blogpost
-  - research-only
-  - create-blogpost-with-existing-research
 
 output_folders:
   - "./output"
