@@ -2,10 +2,11 @@ using Insight.Services.Ai.Gemini.Interfaces;
 using Insight.Services.Ai.Gemini.Types;
 using Insight.Services.Interfaces.Ai;
 using Insight.Services.Interfaces.Core;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Insight.Services.Ai.Gemini.AgentServices;
 
-public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto> metadataProvider) : IBlogAgent, IAgentOrchestrator
+public class GeminiAgent(IGeminiApiClient apiClient, [FromKeyedServices("Gemini")] IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto> metadataProvider) : IBlogAgent, IAgentOrchestrator
 {
     private const string AgentName = "Blog Writer Agent";
     private const string AgentId = "blog-writer-agent";
