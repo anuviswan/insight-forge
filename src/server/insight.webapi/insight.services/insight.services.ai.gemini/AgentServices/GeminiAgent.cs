@@ -72,22 +72,30 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
 
     private static string BuildBlogPrompt(string topic, string audience, string writingStyle)
     {
-        var prompt = $@"Run workflow: create-blogpost-with-existing-research
+        var prompt = $"Write a comprehensive blog post about '{topic}'.";
 
-Topic: {topic}
-Audience: {audience?.Trim() ?? "General audience"}
-WritingStyle: {writingStyle?.Trim() ?? "Professional"}";
+        if (!string.IsNullOrWhiteSpace(audience))
+            prompt += $"\n\nTarget Audience: {audience.Trim()}";
+
+        if (!string.IsNullOrWhiteSpace(writingStyle))
+            prompt += $"\n\nWriting Style: {writingStyle.Trim()}";
+
+        prompt += "\n\nInclude citations, references, code examples where applicable, and ensure professional quality.";
 
         return prompt;
     }
 
     private static string BuildResearchPrompt(string topic, string audience, string writingStyle)
     {
-        var prompt = $@"Run workflow: research-only
+        var prompt = $"Conduct thorough research on the topic: '{topic}'.";
 
-Topic: {topic}
-Audience: {audience?.Trim() ?? "General audience"}
-WritingStyle: {writingStyle?.Trim() ?? "Professional"}";
+        if (!string.IsNullOrWhiteSpace(audience))
+            prompt += $"\n\nTarget Audience: {audience.Trim()}";
+
+        if (!string.IsNullOrWhiteSpace(writingStyle))
+            prompt += $"\n\nContext: {writingStyle.Trim()}";
+
+        prompt += "\n\nProvide research findings in a structured format with key findings, sources, and data points.";
 
         return prompt;
     }
