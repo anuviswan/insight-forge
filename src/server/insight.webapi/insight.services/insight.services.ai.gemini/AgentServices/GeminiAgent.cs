@@ -29,10 +29,50 @@ public class GeminiAgent(IGeminiApiClient apiClient, [FromKeyedServices("Gemini"
         if (agentDef == null)
             throw new InvalidOperationException($"Agent definition not found for 'Gemini' provider");
 
+        // Validate all required components are present
+        ValidateAgentDefinition(agentDef);
+
         // Build system instruction from agent role and responsibilities
         var systemInstruction = BuildSystemInstruction(agentDef);
         var result = await apiClient.CreateManagedAgentAsync(agentId, systemInstruction, agentDef, cancellationToken);
         return result ?? agentId;
+    }
+
+    private static void ValidateAgentDefinition(AgentDefinitionDto agentDef)
+    {
+        var missingComponents = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(agentDef.AgentsMd))
+            missingComponents.Add("AgentsMd (agents definition)");
+
+        if (agentDef.Workflows == null || agentDef.Workflows.Count == 0)
+            missingComponents.Add("Workflows (0 workflows loaded)");
+        else
+        {
+            foreach (var wf in agentDef.Workflows)
+            {
+                if (string.IsNullOrWhiteSpace(wf.Content))
+                    missingComponents.Add($"Workflow '{wf.Name}' has empty content");
+            }
+        }
+
+        if (agentDef.Skills == null || agentDef.Skills.Count == 0)
+            missingComponents.Add("Skills (0 skills loaded)");
+        else
+        {
+            foreach (var skill in agentDef.Skills)
+            {
+                if (string.IsNullOrWhiteSpace(skill.Content))
+                    missingComponents.Add($"Skill '{skill.Name}' has empty content");
+            }
+        }
+
+        if (missingComponents.Any())
+        {
+            var message = $"Cannot create agent - missing or invalid components:\n  - " +
+                         string.Join("\n  - ", missingComponents);
+            throw new InvalidOperationException(message);
+        }
     }
 
     private static string BuildSystemInstruction(AgentDefinitionDto agentDef)

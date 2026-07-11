@@ -86,6 +86,14 @@ public class GeminiApiHttpClient : IGeminiApiClient
             }
         }
 
+        // Fail early if environment sources are empty
+        if (environmentSources.Count == 0)
+        {
+            throw new InvalidOperationException(
+                $"Cannot create agent '{agentId}': no environment sources. " +
+                "Agent definition must include AgentsMd, workflows, and skills.");
+        }
+
         var payload = new
         {
             id = agentId,
