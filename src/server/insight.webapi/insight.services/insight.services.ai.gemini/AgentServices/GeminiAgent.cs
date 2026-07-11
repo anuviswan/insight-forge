@@ -72,48 +72,22 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
 
     private static string BuildBlogPrompt(string topic, string audience, string writingStyle)
     {
-        // Explicitly instruct the agent to execute the create-blogpost workflow with structured inputs
-        var prompt = $@"Execute the 'create-blogpost' workflow with the following inputs:
+        var prompt = $@"Run workflow: create-blogpost-with-existing-research
 
 Topic: {topic}
 Audience: {audience?.Trim() ?? "General audience"}
-WritingStyle: {writingStyle?.Trim() ?? "Professional"}
-
-The workflow will:
-1. Research the topic thoroughly using web search
-2. Perform domain analysis on research findings
-3. Create a comprehensive outline
-4. Write a draft blog post with proper structure
-5. Apply SEO optimization
-6. Verify originality
-
-Expected Output:
-- Well-structured blog post in Markdown
-- Proper heading hierarchy (H2/H3)
-- Inline citations with markdown links [text](url)
-- References section citing all sources
-- Code examples where applicable
-- Professional, polished content";
+WritingStyle: {writingStyle?.Trim() ?? "Professional"}";
 
         return prompt;
     }
 
     private static string BuildResearchPrompt(string topic, string audience, string writingStyle)
     {
-        var prompt = $"Conduct thorough research on the topic: '{topic}'.";
+        var prompt = $@"Run workflow: research-only
 
-        if (!string.IsNullOrWhiteSpace(audience))
-            prompt += $"\n\nTarget Audience: {audience.Trim()}";
-
-        if (!string.IsNullOrWhiteSpace(writingStyle))
-            prompt += $"\n\nContext: {writingStyle.Trim()}";
-
-        prompt += "\n\nProvide research findings in a structured format with:\n"
-                + "- Key findings and insights\n"
-                + "- Relevant sources and references\n"
-                + "- Data points and statistics\n"
-                + "- Current trends and developments\n"
-                + "Format the results as a comprehensive research summary.";
+Topic: {topic}
+Audience: {audience?.Trim() ?? "General audience"}
+WritingStyle: {writingStyle?.Trim() ?? "Professional"}";
 
         return prompt;
     }
