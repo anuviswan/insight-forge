@@ -138,6 +138,25 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
                 Console.WriteLine($"[YAML Deserialization] Before PopulateSkillsAndWorkflows - Skills: {agent.SkillNames?.Count() ?? 0}, Workflows: {agent.WorkflowNames?.Count() ?? 0}");
                 PopulateSkillsAndWorkflows(agent);
                 Console.WriteLine($"[YAML Deserialization] After PopulateSkillsAndWorkflows - Skills: {agent.Skills?.Count ?? 0}, Workflows: {agent.Workflows?.Count ?? 0}");
+
+                // Load agents.md (AGENTS.md) for the Gemini environment source
+                var agentsMd = Path.Combine(root, "agents.md");
+                var agentsMdAlt = Path.Combine(root, "AGENTS.md");
+                if (File.Exists(agentsMd))
+                {
+                    agent.AgentsMd = await File.ReadAllTextAsync(agentsMd, cancellationToken);
+                    Console.WriteLine($"[YAML Deserialization] Loaded agents.md: {agent.AgentsMd?.Length ?? 0} chars");
+                }
+                else if (File.Exists(agentsMdAlt))
+                {
+                    agent.AgentsMd = await File.ReadAllTextAsync(agentsMdAlt, cancellationToken);
+                    Console.WriteLine($"[YAML Deserialization] Loaded AGENTS.md: {agent.AgentsMd?.Length ?? 0} chars");
+                }
+                else
+                {
+                    Console.WriteLine($"[YAML Deserialization] Warning: No agents.md or AGENTS.md found in {root}");
+                }
+
                 return agent;
             }
 
@@ -150,6 +169,19 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
                 mapped.Workflows ??= new List<WorkflowDto>();
                 mapped.Skills ??= new List<SkillDto>();
                 PopulateSkillsAndWorkflows(mapped);
+
+                // Load agents.md for the Gemini environment source
+                var agentsMd = Path.Combine(root, "agents.md");
+                var agentsMdAlt = Path.Combine(root, "AGENTS.md");
+                if (File.Exists(agentsMd))
+                {
+                    mapped.AgentsMd = await File.ReadAllTextAsync(agentsMd, cancellationToken);
+                }
+                else if (File.Exists(agentsMdAlt))
+                {
+                    mapped.AgentsMd = await File.ReadAllTextAsync(agentsMdAlt, cancellationToken);
+                }
+
                 return mapped;
             }
         }
@@ -238,6 +270,19 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
                 if (!result.ContainsKey(key))
                 {
                     PopulateSkillsAndWorkflows(agent);
+
+                    // Load agents.md for the Gemini environment source
+                    var agentsMd = Path.Combine(root, "agents.md");
+                    var agentsMdAlt = Path.Combine(root, "AGENTS.md");
+                    if (File.Exists(agentsMd))
+                    {
+                        agent.AgentsMd = File.ReadAllText(agentsMd);
+                    }
+                    else if (File.Exists(agentsMdAlt))
+                    {
+                        agent.AgentsMd = File.ReadAllText(agentsMdAlt);
+                    }
+
                     result[key] = agent;
                 }
                 else
