@@ -1,3 +1,5 @@
+using YamlDotNet.Serialization;
+
 namespace Insight.Services.Ai.Gemini.Types;
 
 public class AgentDefinitionDto
@@ -8,7 +10,8 @@ public class AgentDefinitionDto
     public string? Provider { get; set; }
     public string? AgentsMd { get; set; }
 
-    /// <summary>Skill names from YAML - used to load actual skill definitions</summary>
+    /// <summary>Skill names from YAML 'skills' field - used to load actual skill definitions</summary>
+    [YamlMember(Alias = "skills")]
     public List<string>? SkillNames { get; set; }
 
     /// <summary>Workflow names from YAML - used to load actual workflow definitions</summary>
