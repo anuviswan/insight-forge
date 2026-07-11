@@ -17,11 +17,15 @@ public class GeminiApiHttpClient : IGeminiApiClient
         _http = http;
         _logger = logger;
 
-        var apiKey = config["Antigravity:ApiKey"];
+        var apiKey = config["GeminiAgent:ApiKey"] ?? config["Antigravity:ApiKey"];
         if (!string.IsNullOrWhiteSpace(apiKey))
         {
             if (!_http.DefaultRequestHeaders.Contains("x-goog-api-key"))
                 _http.DefaultRequestHeaders.Add("x-goog-api-key", apiKey);
+        }
+        else
+        {
+            _logger.LogWarning("Gemini API key not configured. Set 'GeminiAgent:ApiKey' in appsettings.json");
         }
     }
 
@@ -45,13 +49,13 @@ public class GeminiApiHttpClient : IGeminiApiClient
 
         if (agentDefinition != null)
         {
-            if (!string.IsNullOrWhiteSpace(agentDefinition.AgentsMd))
+            if (!string.IsNullOrWhiteSpace(agentDefinition.Specification))
             {
                 environmentSources.Add(new
                 {
                     type = "inline",
                     target = ".agents/AGENTS.md",
-                    content = agentDefinition.AgentsMd
+                    content = agentDefinition.Specification
                 });
             }
 
@@ -82,6 +86,14 @@ public class GeminiApiHttpClient : IGeminiApiClient
             }
         }
 
+        // Fail early if environment sources are empty
+        if (environmentSources.Count == 0)
+        {
+            throw new InvalidOperationException(
+                $"Cannot create agent '{agentId}': no environment sources. " +
+                "Agent definition must include AgentsMd, workflows, and skills.");
+        }
+
         var payload = new
         {
             id = agentId,
@@ -93,6 +105,37 @@ public class GeminiApiHttpClient : IGeminiApiClient
                 sources = environmentSources
             }
         };
+
+        // Detailed logging for debugging
+        Console.WriteLine($"\n========== CREATE AGENT REQUEST ==========");
+        Console.WriteLine($"Agent ID: {agentId}");
+        Console.WriteLine($"Base Agent: {BaseAgentModel}");
+        Console.WriteLine($"System Instruction Length: {systemInstruction?.Length ?? 0}");
+        Console.WriteLine($"\nAgent Definition:");
+        if (agentDefinition != null)
+        {
+            Console.WriteLine($"  Name: {agentDefinition.Name}");
+            Console.WriteLine($"  Specification Present: {!string.IsNullOrWhiteSpace(agentDefinition.Specification)}");
+            Console.WriteLine($"  Specification Length: {agentDefinition.Specification?.Length ?? 0}");
+            Console.WriteLine($"  Workflows: {agentDefinition.Workflows?.Count ?? 0}");
+            if (agentDefinition.Workflows?.Count > 0)
+            {
+                foreach (var wf in agentDefinition.Workflows)
+                    Console.WriteLine($"    - {wf.Name} ({wf.Content?.Length ?? 0} chars)");
+            }
+            Console.WriteLine($"  Skills: {agentDefinition.Skills?.Count ?? 0}");
+            if (agentDefinition.Skills?.Count > 0)
+            {
+                foreach (var skill in agentDefinition.Skills)
+                    Console.WriteLine($"    - {skill.Name} ({skill.Content?.Length ?? 0} chars)");
+            }
+        }
+        else
+        {
+            Console.WriteLine("  NULL - No agent definition provided!");
+        }
+        Console.WriteLine($"\nEnvironment Sources: {environmentSources.Count}");
+        Console.WriteLine($"=========================================\n");
 
         HttpResponseMessage resp;
         try

@@ -1,0 +1,34 @@
+name: originality-check
+description: "Review articles for originality and refine content"
+instructions: |
+  Purpose: Ensure content is original, properly attributed, and in the author's voice.
+  Note: This skill does not perform true plagiarism detection.
+
+  Review Criteria:
+  - Source Dependency: Identify sections that closely mirror source structure/wording
+  - Excessive Quoting: Flag long quotes and recommend paraphrasing
+  - Generic Writing: Detect repetitive AI patterns, rewrite naturally
+  - Technical Originality: Verify explanations, examples, code samples, diagrams are original
+  - Proper Attribution: Check for required citations
+
+  Rewriting Guidelines:
+  - Preserve meaning and technical accuracy
+  - Improve clarity and conciseness
+  - Prefer active voice
+  - Avoid source-specific phrasing; reconstruct from first principles
+  - Personalize with author's perspective and examples
+
+  Attribution Requirements:
+  - Direct quotations
+  - Statistics and benchmarks
+  - Survey results and research findings
+  - Third-party diagrams and visuals
+  - External code samples
+  - Frameworks and methodologies
+
+  Output Assessment:
+  - Overall Risk: Low | Medium | High
+  - Sections Requiring Review
+  - Rewriting Suggestions
+  - Attribution Issues
+  - Final Recommendation: Ready to Publish | Needs Revision

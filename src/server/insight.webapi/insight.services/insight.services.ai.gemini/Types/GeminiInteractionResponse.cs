@@ -1,6 +1,52 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Insight.Services.Ai.Gemini.Types;
+
+// Custom converter to handle both array and non-array values for Content/Summary
+public class ContentArrayConverter : JsonConverter<List<StepContent>>
+{
+    public override List<StepContent> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var result = new List<StepContent>();
+
+        if (reader.TokenType == JsonTokenType.Null)
+        {
+            return result;
+        }
+
+        if (reader.TokenType != JsonTokenType.StartArray)
+        {
+            return result;
+        }
+
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndArray)
+                break;
+
+            if (reader.TokenType == JsonTokenType.StartObject)
+            {
+                var content = JsonSerializer.Deserialize<StepContent>(ref reader, options);
+                if (content != null)
+                    result.Add(content);
+            }
+        }
+
+        return result;
+    }
+
+    public override void Write(Utf8JsonWriter writer, List<StepContent>? value, JsonSerializerOptions options)
+    {
+        if (value == null)
+        {
+            writer.WriteNullValue();
+            return;
+        }
+
+        JsonSerializer.Serialize(writer, value, options);
+    }
+}
 
 public class GeminiInteractionResponse
 {
@@ -35,9 +81,11 @@ public class InteractionStep
     public string? Type { get; set; }
 
     [JsonPropertyName("content")]
+    [JsonConverter(typeof(ContentArrayConverter))]
     public List<StepContent>? Content { get; set; }
 
     [JsonPropertyName("summary")]
+    [JsonConverter(typeof(ContentArrayConverter))]
     public List<StepContent>? Summary { get; set; }
 
     [JsonPropertyName("id")]
@@ -50,7 +98,7 @@ public class InteractionStep
     public string? CallId { get; set; }
 
     [JsonPropertyName("result")]
-    public string? Result { get; set; }
+    public JsonElement? Result { get; set; }
 
     [JsonPropertyName("is_error")]
     public bool? IsError { get; set; }

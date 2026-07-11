@@ -1,6 +1,8 @@
+using Insight.Services.Interfaces.Core;
+
 namespace Insight.Services.Interfaces.Ai;
 
 public interface IBlogAgent
 {
-    Task<string> CreateBlogPostAsync(string topic, string audience, string writingStyle, CancellationToken cancellationToken = default);
+    Task<BlogEntry> CreateBlogPostAsync(string topic, string audience, string writingStyle, CancellationToken cancellationToken = default);
 }

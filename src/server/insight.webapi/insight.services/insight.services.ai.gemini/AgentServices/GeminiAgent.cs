@@ -1,10 +1,12 @@
 using Insight.Services.Ai.Gemini.Interfaces;
 using Insight.Services.Ai.Gemini.Types;
 using Insight.Services.Interfaces.Ai;
+using Insight.Services.Interfaces.Core;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Insight.Services.Ai.Gemini.AgentServices;
 
-public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto> metadataProvider) : IBlogAgent, IAgentOrchestrator
+public class GeminiAgent(IGeminiApiClient apiClient, [FromKeyedServices("Gemini")] IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto> metadataProvider) : IBlogAgent, IAgentOrchestrator
 {
     private const string AgentName = "Blog Writer Agent";
     private const string AgentId = "blog-writer-agent";
@@ -23,16 +25,88 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
         if (string.IsNullOrWhiteSpace(agentId))
             throw new ArgumentException("Agent ID must be provided", nameof(agentId));
 
-        var agentDef = metadataProvider.GetAgent(AgentName);
+        var agentDef = metadataProvider.GetAgent("Gemini");
         if (agentDef == null)
-            throw new InvalidOperationException($"Agent definition not found for '{AgentName}'");
+            throw new InvalidOperationException($"Agent definition not found for 'Gemini' provider");
 
-        var systemInstruction = agentDef.Content ?? $"You are the {AgentName} agent. Execute the create-blogpost workflow to generate professional technical blog posts with research integration, domain analysis, and content quality optimization.";
+        // Validate all required components are present
+        ValidateAgentDefinition(agentDef);
+
+        // Build system instruction from agent role and responsibilities
+        var systemInstruction = BuildSystemInstruction(agentDef);
         var result = await apiClient.CreateManagedAgentAsync(agentId, systemInstruction, agentDef, cancellationToken);
         return result ?? agentId;
     }
 
-    public async Task<string> CreateBlogPostAsync(string topic, string audience, string writingStyle, CancellationToken cancellationToken = default)
+    private static void ValidateAgentDefinition(AgentDefinitionDto agentDef)
+    {
+        var missingComponents = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(agentDef.Specification))
+            missingComponents.Add("Specification (agent specification)");
+
+        if (agentDef.Workflows == null || agentDef.Workflows.Count == 0)
+            missingComponents.Add("Workflows (0 workflows loaded)");
+        else
+        {
+            foreach (var wf in agentDef.Workflows)
+            {
+                if (string.IsNullOrWhiteSpace(wf.Content))
+                    missingComponents.Add($"Workflow '{wf.Name}' has empty content");
+            }
+        }
+
+        if (agentDef.Skills == null || agentDef.Skills.Count == 0)
+            missingComponents.Add("Skills (0 skills loaded)");
+        else
+        {
+            foreach (var skill in agentDef.Skills)
+            {
+                if (string.IsNullOrWhiteSpace(skill.Content))
+                    missingComponents.Add($"Skill '{skill.Name}' has empty content");
+            }
+        }
+
+        if (missingComponents.Any())
+        {
+            var message = $"Cannot create agent - missing or invalid components:\n  - " +
+                         string.Join("\n  - ", missingComponents);
+            throw new InvalidOperationException(message);
+        }
+    }
+
+    private static string BuildSystemInstruction(AgentDefinitionDto agentDef)
+    {
+        var instructionParts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(agentDef.Name))
+        {
+            instructionParts.Add($"You are the {agentDef.Name}.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(agentDef.Role))
+        {
+            instructionParts.Add($"Role: {agentDef.Role}");
+        }
+
+        if (agentDef.Responsibilities?.Any() == true)
+        {
+            instructionParts.Add("Responsibilities:");
+            foreach (var responsibility in agentDef.Responsibilities)
+            {
+                instructionParts.Add($"- {responsibility}");
+            }
+        }
+
+        if (!instructionParts.Any())
+        {
+            return $"You are the {AgentName} agent. Generate professional technical blog posts.";
+        }
+
+        return string.Join("\n", instructionParts);
+    }
+
+    public async Task<BlogEntry> CreateBlogPostAsync(string topic, string audience, string writingStyle, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(topic))
             throw new ArgumentException("Topic must be provided", nameof(topic));
@@ -47,7 +121,7 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
         var input = BuildBlogPrompt(topic, audience, writingStyle);
 
         var result = await apiClient.RunAgentInteractionAsync(AgentId, input, cancellationToken).ConfigureAwait(false);
-        return result ?? string.Empty;
+        return new BlogEntry { Content = result ?? string.Empty };
     }
 
     private static string BuildBlogPrompt(string topic, string audience, string writingStyle)
@@ -55,14 +129,15 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
         var prompt = $"Write a comprehensive blog post about '{topic}'.";
 
         if (!string.IsNullOrWhiteSpace(audience))
-            prompt += $"\n\nIntended Audience: {audience.Trim()}";
+            prompt += $"\n\nTarget Audience: {audience.Trim()}";
 
         if (!string.IsNullOrWhiteSpace(writingStyle))
-            prompt += $"\n\nWriting Style/Tone: {writingStyle.Trim()}";
+            prompt += $"\n\nWriting Style: {writingStyle.Trim()}";
 
-        prompt += "\n\nProvide the complete blog post in well-formatted Markdown.";
+        prompt += "\n\nInclude citations, references, code examples where applicable, and ensure professional quality.";
 
         return prompt;
     }
+
 
 }

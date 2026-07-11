@@ -36,11 +36,11 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
         _skillsCache ??= LoadSkills();
         _workflowsCache ??= LoadWorkflow();
 
-        // Populate Skills from names using the cached dictionary
-        if (dto.SkillsNames?.Any() == true)
+        // Populate Skills from SkillNames (loaded from YAML)
+        if (dto.SkillNames?.Any() == true)
         {
             dto.Skills = new List<SkillDto>();
-            foreach (var skillName in dto.SkillsNames)
+            foreach (var skillName in dto.SkillNames)
             {
                 if (_skillsCache.TryGetValue(skillName, out var skillDto))
                 {
@@ -54,11 +54,11 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
             }
         }
 
-        // Populate Workflows from names using the cached dictionary
-        if (dto.WorkflowsNames?.Any() == true)
+        // Populate Workflows from WorkflowNames (loaded from YAML)
+        if (dto.WorkflowNames?.Any() == true)
         {
             dto.Workflows = new List<WorkflowDto>();
-            foreach (var workflowName in dto.WorkflowsNames)
+            foreach (var workflowName in dto.WorkflowNames)
             {
                 if (_workflowsCache.TryGetValue(workflowName, out var workflowDto))
                 {
@@ -112,32 +112,59 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
 
         try
         {
+            Console.WriteLine($"\n[YAML Deserialization] Attempting to deserialize agent: {agentIdentifier}");
+            Console.WriteLine($"[YAML Deserialization] YAML content length: {yamlText?.Length ?? 0}");
+            Console.WriteLine($"[YAML Deserialization] First 200 chars: {yamlText?.Substring(0, Math.Min(200, yamlText.Length))}");
+
             // Try to deserialize as collection first (new pattern)
             var collection = _deserializer.Deserialize<AgentsCollectionDto>(yamlText);
+            Console.WriteLine($"[YAML Deserialization] Collection deserialized: {collection != null}");
             if (collection?.Agents?.Any() == true)
             {
+                Console.WriteLine($"[YAML Deserialization] Found {collection.Agents.Count} agents");
                 var agent = collection.Agents[0];
-                agent.Provider = agentIdentifier;
-                agent.Content = yamlText;
                 agent.Workflows ??= new List<WorkflowDto>();
                 agent.Skills ??= new List<SkillDto>();
+
+                // Copy root-level workflows to agent if agent doesn't have them
+                if ((agent.WorkflowNames == null || !agent.WorkflowNames.Any()) && collection.Workflows?.Any() == true)
+                {
+                    agent.WorkflowNames = collection.Workflows;
+                    Console.WriteLine($"[YAML Deserialization] Copied root-level workflows to agent: {string.Join(", ", collection.Workflows)}");
+                }
+
+                Console.WriteLine($"[YAML Deserialization] Before PopulateSkillsAndWorkflows - Skills: {agent.SkillNames?.Count() ?? 0}, Workflows: {agent.WorkflowNames?.Count() ?? 0}");
                 PopulateSkillsAndWorkflows(agent);
-                return agent;
+                Console.WriteLine($"[YAML Deserialization] After PopulateSkillsAndWorkflows - Skills: {agent.Skills?.Count ?? 0}, Workflows: {agent.Workflows?.Count ?? 0}");
+
+                // Build specification from deserialized agent data
+                agent.Specification = AgentSpecificationBuilder.BuildSpecification(agent);
+                Console.WriteLine($"[YAML Deserialization] Built specification: {agent.Specification?.Length ?? 0} chars");
+
+                return agent;   
             }
 
+            Console.WriteLine($"[YAML Deserialization] Collection empty or null, trying direct deserialization");
             // Fallback: try direct deserialization (backward compatibility)
             var mapped = _deserializer.Deserialize<AgentDefinitionDto>(yamlText);
             if (mapped != null)
             {
-                mapped.Content = yamlText;
                 mapped.Workflows ??= new List<WorkflowDto>();
                 mapped.Skills ??= new List<SkillDto>();
                 PopulateSkillsAndWorkflows(mapped);
+
+                // Build specification from deserialized agent data
+                mapped.Specification = AgentSpecificationBuilder.BuildSpecification(mapped);
+
                 return mapped;
             }
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"\n[YAML Deserialization ERROR] Failed to deserialize {agentIdentifier}");
+            Console.WriteLine($"[YAML Deserialization ERROR] Exception: {ex.GetType().Name}");
+            Console.WriteLine($"[YAML Deserialization ERROR] Message: {ex.Message}");
+            Console.WriteLine($"[YAML Deserialization ERROR] StackTrace: {ex.StackTrace}\n");
             _logger.LogWarning(ex, "Failed to deserialize YAML for {AgentIdentifier}", agentIdentifier);
         }
 
@@ -207,9 +234,6 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
 
             foreach (var agent in collection.Agents)
             {
-                agent.Provider = providerName;
-                agent.Content = yamlText;
-
                 string key = !string.IsNullOrWhiteSpace(agent.Name)
                     ? agent.Name
                     : providerName;
@@ -217,6 +241,10 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
                 if (!result.ContainsKey(key))
                 {
                     PopulateSkillsAndWorkflows(agent);
+
+                    // Build specification from deserialized agent data
+                    agent.Specification = AgentSpecificationBuilder.BuildSpecification(agent);
+
                     result[key] = agent;
                 }
                 else
@@ -243,33 +271,80 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
             return result;
         }
 
-        // Get all YAML files from the skills definition folder
-        var skillFiles = Directory.EnumerateFiles(_skillsDefinitionFolder)
-            .Where(f => f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || 
-                        f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase))
-            .OrderBy(p => p);
+        // Iterate through skill subdirectories
+        var skillDirs = Directory.EnumerateDirectories(_skillsDefinitionFolder).OrderBy(p => p).ToList();
 
-        foreach (var skillFile in skillFiles)
+        foreach (var skillDir in skillDirs)
         {
             try
             {
-                var yamlText = File.ReadAllText(skillFile);
-                if (string.IsNullOrWhiteSpace(yamlText)) continue;
+                var dirName = Path.GetFileName(skillDir);
+
+                // Look for SKILL.yaml or SKILL.yml in the subdirectory
+                var skillYaml = Path.Combine(skillDir, "SKILL.yaml");
+                var skillYml = Path.Combine(skillDir, "SKILL.yml");
+
+                string? yamlText = null;
+                if (File.Exists(skillYaml))
+                {
+                    yamlText = File.ReadAllText(skillYaml);
+                }
+                else if (File.Exists(skillYml))
+                {
+                    yamlText = File.ReadAllText(skillYml);
+                }
+                else
+                {
+                    _logger.LogWarning("No SKILL.yaml or SKILL.yml found in skill directory: {SkillDir}", dirName);
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(yamlText))
+                {
+                    _logger.LogWarning("SKILL file is empty in directory: {SkillDir}", dirName);
+                    continue;
+                }
 
                 var skill = _deserializer.Deserialize<SkillDto>(yamlText);
+
                 if (skill != null && !string.IsNullOrWhiteSpace(skill.Name))
                 {
-                    skill.Content = yamlText;
+                    // Build markdown content from description and instructions
+                    skill.Content = BuildSkillMarkdown(skill.Description, skill.Instructions);
                     result[skill.Name] = skill;
+                    _logger.LogInformation("Loaded skill: {SkillName}", skill.Name);
+                }
+                else
+                {
+                    _logger.LogWarning("Skill deserialized but name is empty from {SkillDir}", dirName);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to deserialize skill from {FilePath}", skillFile);
+                _logger.LogWarning(ex, "Failed to deserialize skill from {SkillDir}", skillDir);
             }
         }
 
+        _logger.LogInformation("Total skills loaded: {SkillCount}", result.Count);
         return result;
+    }
+
+    private static string BuildSkillMarkdown(string? description, string? instructions)
+    {
+        var content = new System.Text.StringBuilder();
+
+        if (!string.IsNullOrWhiteSpace(description))
+        {
+            content.AppendLine($"## {description}");
+            content.AppendLine();
+        }
+
+        if (!string.IsNullOrWhiteSpace(instructions))
+        {
+            content.AppendLine(instructions);
+        }
+
+        return content.ToString().TrimEnd();
     }
 
     public IDictionary<string, WorkflowDto> LoadWorkflow()
@@ -284,7 +359,7 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
 
         // Get all YAML files from the workflows definition folder
         var workflowFiles = Directory.EnumerateFiles(_workflowsDefinitionFolder)
-            .Where(f => f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || 
+            .Where(f => f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) ||
                         f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase))
             .OrderBy(p => p);
 
@@ -296,8 +371,15 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
                 if (string.IsNullOrWhiteSpace(yamlText)) continue;
 
                 var workflow = _deserializer.Deserialize<WorkflowDto>(yamlText);
-                if (workflow != null && !string.IsNullOrWhiteSpace(workflow.Name))
+                if (workflow != null)
                 {
+                    // Use filename (without extension) as the workflow name if not set
+                    if (string.IsNullOrWhiteSpace(workflow.Name))
+                    {
+                        workflow.Name = Path.GetFileNameWithoutExtension(workflowFile);
+                    }
+
+                    // Store raw YAML as content
                     workflow.Content = yamlText;
                     result[workflow.Name] = workflow;
                 }

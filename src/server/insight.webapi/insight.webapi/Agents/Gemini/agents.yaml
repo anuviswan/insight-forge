@@ -1,7 +1,8 @@
 description: Document defines the available Agents and workflows in the system
 
 agents:
-  - name: "Blog Writer Agent"
+  - id: "blog-writer-agent"
+    name: "Blog Writer Agent"
     role: "Research a given topic and produce a technical article using approved templates"
     responsibilities:
       - "Research topics using web resources"
@@ -12,11 +13,17 @@ agents:
       - "Ensure code snippets are compilable"
       - "Use SEO keywords when required"
       - "Verify factual accuracy of information"
+    skills:
+      - research
+      - outline
+      - writer
+      - seo
+      - originality-check
+      - dotnet-evangelist
+      - architect
 
 workflows:
   - create-blogpost
-  - research-only
-  - create-blogpost-with-existing-research
 
 output_folders:
   - "./output"

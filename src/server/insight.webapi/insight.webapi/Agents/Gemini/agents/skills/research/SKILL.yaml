@@ -1,0 +1,35 @@
+name: research
+description: "Conduct comprehensive research and generate structured research artifacts"
+instructions: |
+  Purpose: Gather accurate information and analysis for downstream tasks.
+
+  When to use:
+  - Researching new technical topics
+  - Validating claims
+  - Collecting references and sources
+  - Comparing technologies, frameworks, or approaches
+
+  Process:
+  1. Clarify - Understand the research objective clearly. ASK questions when required. NEVER ASSUME.
+  2. Collect Information - Search broadly and then refine using multiple source types.
+  3. Validate Information - Verify facts across multiple sources.
+  4. Organize Findings - Structure and synthesize the findings.
+
+  Source Priority:
+  - Primary: Official documentation, Academic Papers, Specifications and standards
+  - Secondary: Engineering Blogs from recognized companies, Conference Talks
+  - Tertiary: Domain expert blogs, Community Contents (Stackoverflow, Microsoft Forums)
+
+  Quality Standards:
+  - Verify important claims
+  - Never present assumptions as facts
+  - For evolving technologies, prefer information within last 24 months
+  - Check for deprecations and breaking changes
+  - Verify current recommendations
+
+  Output:
+  - Key Findings
+  - Best Practices and recommendations
+  - Code Samples
+  - Common Pitfalls
+  - References

@@ -15,7 +15,15 @@ public class BloggerController(IBlogService blogService) : ControllerBase
         if (request == null || string.IsNullOrWhiteSpace(request.Topic))
             return BadRequest("Topic is required.");
 
-        var content = await blogService.CreateBlogEntryAsync(request.Topic, request.Audience, request.WritingStyle, cancellationToken);
-        return Ok(new BlogEntryResponse { Content = content });
+        var blogEntry = await blogService.CreateBlogEntryAsync(request.Topic, request.Audience, request.WritingStyle, cancellationToken);
+        return Ok(new BlogEntryResponse
+        {
+            Content = blogEntry.Content,
+            Citations = blogEntry.Citations,
+            References = blogEntry.References,
+            QualityScore = blogEntry.QualityAssessment?.QualityScore ?? 0,
+            QualityIssues = blogEntry.QualityAssessment?.IssuesFound ?? new(),
+            QualityStrengths = blogEntry.QualityAssessment?.Strengths ?? new()
+        });
     }
 }
