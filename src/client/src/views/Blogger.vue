@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { marked } from 'marked';
 import { useDocumentsStore } from '../stores/documents';
 
 const documentsStore = useDocumentsStore();
@@ -8,6 +9,11 @@ const topic = ref('');
 const audience = ref('');
 const writingStyle = ref('');
 const showFabAlert = ref(false);
+
+const renderedContent = computed(() => {
+  if (!documentsStore.activePost?.content) return '';
+  return marked(documentsStore.activePost.content, { breaks: true });
+});
 
 async function handleGenerate() {
   if (!topic.value.trim()) return;
@@ -128,27 +134,7 @@ function handleDelete() {
         </div>
       </div>
 
-      <div class="preview-content">
-        <h2 class="content-title">{{ documentsStore.activePost.title }}</h2>
-        
-        <p class="content-paragraph">The intersection of artificial intelligence and creative design is no longer a futuristic concept—it's the present reality of our industry. As we look ahead, the role of the designer is shifting from being the primary executor to becoming a creative director of algorithmic systems.</p>
-
-        <!-- Preview Image -->
-        <div class="preview-image-container" v-if="documentsStore.activePost.imageUrl">
-          <img :src="documentsStore.activePost.imageUrl" alt="Preview Visual" class="preview-image" />
-        </div>
-
-        <h3 class="content-heading">1. Generative Co-creation</h3>
-        <p class="content-paragraph">AI tools like Midjourney and DALL-E have already disrupted the visual ideation process. However, the true transformation lies in <strong>generative design systems</strong> that can iterate through thousands of layout variations based on user data and accessibility requirements in real-time.</p>
-
-        <blockquote class="content-quote">
-          "Design is not just what it looks like and feels like. Design is how it works—and now, how it learns."
-        </blockquote>
-
-        <h3 class="content-heading">2. The End of Repetitive Tasks</h3>
-        <p class="content-paragraph">From resizing assets to generating colour palettes that meet contrast ratios, AI is liberating designers from the mechanical parts of the job. This shift allows human creators to focus on <strong>empathy, storytelling, and strategic brand thinking</strong>—areas where machines still struggle to find nuance.</p>
-
-        <p class="content-paragraph">As we move into 2025, the successful designer will be the one who masters the 'prompt'—not just as a text string, but as a deep understanding of how to guide latent spaces toward meaningful human outcomes.</p>
+      <div class="preview-content markdown-content" v-html="renderedContent">
       </div>
 
       <div class="preview-footer">
@@ -345,6 +331,99 @@ function handleDelete() {
   padding: var(--space-xl);
   color: var(--text-secondary);
   line-height: 1.7;
+}
+
+.markdown-content {
+  overflow-x: auto;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  color: var(--text-primary);
+  font-weight: 700;
+  margin-top: var(--space-lg);
+  margin-bottom: var(--space-md);
+  line-height: 1.3;
+}
+
+.markdown-content h1 {
+  font-size: var(--font-size-xxl);
+  margin-top: 0;
+}
+
+.markdown-content h2 {
+  font-size: var(--font-size-xl);
+}
+
+.markdown-content h3 {
+  font-size: var(--font-size-lg);
+}
+
+.markdown-content p {
+  margin-bottom: var(--space-md);
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin-bottom: var(--space-md);
+  padding-left: var(--space-lg);
+}
+
+.markdown-content li {
+  margin-bottom: var(--space-sm);
+}
+
+.markdown-content code {
+  background-color: var(--bg-input);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  color: #d4576d;
+}
+
+.markdown-content pre {
+  background-color: var(--bg-input);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  margin-bottom: var(--space-md);
+}
+
+.markdown-content pre code {
+  background-color: transparent;
+  padding: 0;
+  color: var(--text-secondary);
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid var(--primary-color);
+  padding-left: var(--space-md);
+  padding-right: var(--space-md);
+  margin-bottom: var(--space-md);
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.markdown-content hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: var(--space-lg) 0;
+}
+
+.markdown-content a {
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: opacity var(--transition-fast);
+}
+
+.markdown-content a:hover {
+  opacity: 0.7;
+  text-decoration: underline;
 }
 
 .content-title {
