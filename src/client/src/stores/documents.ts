@@ -9,14 +9,22 @@ export interface HistoryItem {
   date: string;
 }
 
+export interface ProgressStep {
+  id: string;
+  label: string;
+  status: 'pending' | 'in-progress' | 'completed' | 'failed';
+  message?: string;
+}
+
 export const useDocumentsStore = defineStore('documents', () => {
   const recentHistory = ref<HistoryItem[]>([]);
   const activePost = ref<BlogPost | null>(null);
   const activeSummary = ref<ResearchSummary | null>(null);
-  
+
   const searchHistoryQuery = ref('');
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const progressSteps = ref<ProgressStep[]>([]);
 
   const filteredHistory = computed(() => {
     if (!searchHistoryQuery.value.trim()) return recentHistory.value;
@@ -38,11 +46,48 @@ export const useDocumentsStore = defineStore('documents', () => {
     }
   }
 
+  function initializeProgress() {
+    progressSteps.value = [
+      { id: '1', label: 'Research', status: 'pending', message: 'Gathering information...' },
+      { id: '2', label: 'Outline', status: 'pending', message: 'Creating structure...' },
+      { id: '3', label: 'Write', status: 'pending', message: 'Generating content...' },
+      { id: '4', label: 'SEO Optimize', status: 'pending', message: 'Optimizing for search...' },
+      { id: '5', label: 'Quality Check', status: 'pending', message: 'Verifying quality...' }
+    ];
+  }
+
+  function updateProgress(stepId: string, status: ProgressStep['status'], message?: string) {
+    const step = progressSteps.value.find(s => s.id === stepId);
+    if (step) {
+      step.status = status;
+      if (message) step.message = message;
+    }
+  }
+
   async function generateBlogPost(topic: string, audience: string = '', writingStyle: string = '') {
     loading.value = true;
     error.value = null;
+    initializeProgress();
+
     try {
+      // Simulate progress updates while API call is in progress
+      const progressInterval = setInterval(() => {
+        const pending = progressSteps.value.find(s => s.status === 'pending');
+        if (pending) {
+          pending.status = 'in-progress';
+        } else {
+          clearInterval(progressInterval);
+        }
+      }, 2000);
+
       const post = await api.blogger.generate(topic, audience, writingStyle);
+      clearInterval(progressInterval);
+
+      // Mark all steps as completed
+      progressSteps.value.forEach(step => {
+        step.status = 'completed';
+      });
+
       activePost.value = post;
 
       // Add to recent history locally
@@ -55,6 +100,11 @@ export const useDocumentsStore = defineStore('documents', () => {
       return post;
     } catch (err: any) {
       error.value = err.message || 'Failed to generate blog post';
+      progressSteps.value.forEach(step => {
+        if (step.status === 'in-progress' || step.status === 'pending') {
+          step.status = 'failed';
+        }
+      });
       throw err;
     } finally {
       loading.value = false;
@@ -107,10 +157,13 @@ export const useDocumentsStore = defineStore('documents', () => {
     filteredHistory,
     loading,
     error,
+    progressSteps,
     loadHistory,
     generateBlogPost,
     generateSummary,
     addEmptyDocument,
-    deleteHistoryItem
+    deleteHistoryItem,
+    initializeProgress,
+    updateProgress
   };
 });

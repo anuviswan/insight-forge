@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { marked } from 'marked';
 import { useDocumentsStore } from '../stores/documents';
+import ProgressIndicator from '../components/common/ProgressIndicator.vue';
 
 const documentsStore = useDocumentsStore();
 
@@ -104,6 +105,9 @@ function handleDelete() {
         </button>
       </form>
     </div>
+
+    <!-- Progress Indicator -->
+    <ProgressIndicator v-if="documentsStore.loading || documentsStore.progressSteps.length > 0" :steps="documentsStore.progressSteps" />
 
     <!-- Active Preview Card -->
     <div v-if="documentsStore.activePost" class="preview-card card animate-fade-in">
