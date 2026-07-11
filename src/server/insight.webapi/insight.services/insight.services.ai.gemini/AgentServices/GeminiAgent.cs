@@ -29,6 +29,16 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
         if (agentDef == null)
             throw new InvalidOperationException($"Agent definition not found for 'Gemini' provider");
 
+        Console.WriteLine($"[DEBUG] Agent Definition Loaded:");
+        Console.WriteLine($"  - Name: {agentDef.Name}");
+        Console.WriteLine($"  - Has AgentsMd: {!string.IsNullOrWhiteSpace(agentDef.AgentsMd)}");
+        Console.WriteLine($"  - Workflows: {agentDef.Workflows?.Count ?? 0}");
+        Console.WriteLine($"  - Skills: {agentDef.Skills?.Count ?? 0}");
+        if (agentDef.Skills?.Count > 0)
+        {
+            Console.WriteLine($"  - Skill Names: {string.Join(", ", agentDef.Skills.Select(s => s.Name))}");
+        }
+
         var systemInstruction = agentDef.Content ?? $"You are the {AgentName} agent. Generate professional technical blog posts with research integration, domain analysis, and content quality optimization.";
         var result = await apiClient.CreateManagedAgentAsync(agentId, systemInstruction, agentDef, cancellationToken);
         return result ?? agentId;
