@@ -24,6 +24,9 @@ public class AgentDefinitionDto
     public IEnumerable<string>? WorkflowsNames => Workflows?.Select(w => w.Name);
 
     public List<WorkflowDto>? Workflows { get; set; }
+
+    /// <summary>Loaded skill objects (populated after deserialization) - not deserialized from YAML</summary>
+    [YamlIgnore]
     public List<SkillDto>? Skills { get; set; }
 
     public string Content { get; set; } = string.Empty;
