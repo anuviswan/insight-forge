@@ -29,19 +29,41 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
         if (agentDef == null)
             throw new InvalidOperationException($"Agent definition not found for 'Gemini' provider");
 
-        Console.WriteLine($"[DEBUG] Agent Definition Loaded:");
-        Console.WriteLine($"  - Name: {agentDef.Name}");
-        Console.WriteLine($"  - Has AgentsMd: {!string.IsNullOrWhiteSpace(agentDef.AgentsMd)}");
-        Console.WriteLine($"  - Workflows: {agentDef.Workflows?.Count ?? 0}");
-        Console.WriteLine($"  - Skills: {agentDef.Skills?.Count ?? 0}");
-        if (agentDef.Skills?.Count > 0)
-        {
-            Console.WriteLine($"  - Skill Names: {string.Join(", ", agentDef.Skills.Select(s => s.Name))}");
-        }
-
-        var systemInstruction = agentDef.Content ?? $"You are the {AgentName} agent. Generate professional technical blog posts with research integration, domain analysis, and content quality optimization.";
+        // Build system instruction from agent role and responsibilities
+        var systemInstruction = BuildSystemInstruction(agentDef);
         var result = await apiClient.CreateManagedAgentAsync(agentId, systemInstruction, agentDef, cancellationToken);
         return result ?? agentId;
+    }
+
+    private static string BuildSystemInstruction(AgentDefinitionDto agentDef)
+    {
+        var instructionParts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(agentDef.Name))
+        {
+            instructionParts.Add($"You are the {agentDef.Name}.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(agentDef.Role))
+        {
+            instructionParts.Add($"Role: {agentDef.Role}");
+        }
+
+        if (agentDef.Responsibilities?.Any() == true)
+        {
+            instructionParts.Add("Responsibilities:");
+            foreach (var responsibility in agentDef.Responsibilities)
+            {
+                instructionParts.Add($"- {responsibility}");
+            }
+        }
+
+        if (!instructionParts.Any())
+        {
+            return $"You are the {AgentName} agent. Generate professional technical blog posts.";
+        }
+
+        return string.Join("\n", instructionParts);
     }
 
     public async Task<BlogEntry> CreateBlogPostAsync(string topic, string audience, string writingStyle, CancellationToken cancellationToken = default)
