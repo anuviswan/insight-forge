@@ -5,10 +5,11 @@ using Insight.Services.Interfaces.Core;
 
 namespace Insight.Services.Ai.Gemini.AgentServices;
 
-public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto> metadataProvider) : IBlogAgent, IAgentOrchestrator
+public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto> metadataProvider) : IBlogAgent, IResearchAgent, IAgentOrchestrator
 {
     private const string AgentName = "Blog Writer Agent";
     private const string AgentId = "blog-writer-agent";
+    private const string ResearchAgentId = "research-agent";
 
     public async Task<string> CheckIfAgentExists(string agentId, CancellationToken cancellationToken = default)
     {
@@ -51,6 +52,24 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
         return new BlogEntry { Content = result ?? string.Empty };
     }
 
+    public async Task<string> ConductResearchAsync(string topic, string audience, string writingStyle, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(topic))
+            throw new ArgumentException("Topic must be provided", nameof(topic));
+
+        // Ensure research agent exists
+        var existsResult = await CheckIfAgentExists(ResearchAgentId, cancellationToken);
+        if (string.IsNullOrEmpty(existsResult))
+        {
+            await CreateAgent(ResearchAgentId, cancellationToken);
+        }
+
+        var input = BuildResearchPrompt(topic, audience, writingStyle);
+
+        var result = await apiClient.RunAgentInteractionAsync(ResearchAgentId, input, cancellationToken).ConfigureAwait(false);
+        return result ?? string.Empty;
+    }
+
     private static string BuildBlogPrompt(string topic, string audience, string writingStyle)
     {
         var prompt = $"Write a comprehensive blog post about '{topic}'.";
@@ -66,6 +85,26 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
                 + "- Include a ## References section at the end with a bulleted list of sources\n"
                 + "- Ensure the blog post is well-structured with proper headings\n"
                 + "Provide the complete blog post in well-formatted Markdown.";
+
+        return prompt;
+    }
+
+    private static string BuildResearchPrompt(string topic, string audience, string writingStyle)
+    {
+        var prompt = $"Conduct thorough research on the topic: '{topic}'.";
+
+        if (!string.IsNullOrWhiteSpace(audience))
+            prompt += $"\n\nTarget Audience: {audience.Trim()}";
+
+        if (!string.IsNullOrWhiteSpace(writingStyle))
+            prompt += $"\n\nContext: {writingStyle.Trim()}";
+
+        prompt += "\n\nProvide research findings in a structured format with:\n"
+                + "- Key findings and insights\n"
+                + "- Relevant sources and references\n"
+                + "- Data points and statistics\n"
+                + "- Current trends and developments\n"
+                + "Format the results as a comprehensive research summary.";
 
         return prompt;
     }
