@@ -72,19 +72,28 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
 
     private static string BuildBlogPrompt(string topic, string audience, string writingStyle)
     {
-        var prompt = $"Write a comprehensive blog post about '{topic}'.";
+        // Explicitly instruct the agent to execute the create-blogpost workflow with structured inputs
+        var prompt = $@"Execute the 'create-blogpost' workflow with the following inputs:
 
-        if (!string.IsNullOrWhiteSpace(audience))
-            prompt += $"\n\nIntended Audience: {audience.Trim()}";
+Topic: {topic}
+Audience: {audience?.Trim() ?? "General audience"}
+WritingStyle: {writingStyle?.Trim() ?? "Professional"}
 
-        if (!string.IsNullOrWhiteSpace(writingStyle))
-            prompt += $"\n\nWriting Style/Tone: {writingStyle.Trim()}";
+The workflow will:
+1. Research the topic thoroughly using web search
+2. Perform domain analysis on research findings
+3. Create a comprehensive outline
+4. Write a draft blog post with proper structure
+5. Apply SEO optimization
+6. Verify originality
 
-        prompt += "\n\nIMPORTANT: Include citations and references in your blog post:\n"
-                + "- Use markdown links [text](url) for citations throughout the content\n"
-                + "- Include a ## References section at the end with a bulleted list of sources\n"
-                + "- Ensure the blog post is well-structured with proper headings\n"
-                + "Provide the complete blog post in well-formatted Markdown.";
+Expected Output:
+- Well-structured blog post in Markdown
+- Proper heading hierarchy (H2/H3)
+- Inline citations with markdown links [text](url)
+- References section citing all sources
+- Code examples where applicable
+- Professional, polished content";
 
         return prompt;
     }
