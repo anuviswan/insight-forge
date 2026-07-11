@@ -49,12 +49,15 @@ public class AgentsCollectionDto
 public class WorkflowDto
 {
     /// <summary>Workflow name (used as identifier and in environment source target).</summary>
+    [YamlMember(Alias = "name")]
     public string Name { get; set; } = string.Empty;
 
     /// <summary>Workflow description from YAML.</summary>
+    [YamlMember(Alias = "description")]
     public string? Description { get; set; }
 
     /// <summary>Workflow YAML content (sent to Gemini as .agents/workflows/{Name}.yaml).</summary>
+    [YamlIgnore]
     public string Content { get; set; } = string.Empty;
 }
 
@@ -62,12 +65,15 @@ public class WorkflowDto
 public class SkillDto
 {
     /// <summary>Skill name (used as identifier and in environment source target).</summary>
+    [YamlMember(Alias = "name")]
     public string Name { get; set; } = string.Empty;
 
     /// <summary>Skill description from YAML (used to build markdown content).</summary>
+    [YamlMember(Alias = "description")]
     public string Description { get; set; } = string.Empty;
 
     /// <summary>Skill instructions from YAML (used to build markdown content).</summary>
+    [YamlMember(Alias = "instructions")]
     public string Instructions { get; set; } = string.Empty;
 
     /// <summary>Skill markdown content built from description and instructions (sent to Gemini as .agents/skills/{Name}/SKILL.md).</summary>

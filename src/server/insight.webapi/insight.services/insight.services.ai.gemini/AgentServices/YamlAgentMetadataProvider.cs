@@ -272,28 +272,51 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
         }
 
         // Iterate through skill subdirectories
-        var skillDirs = Directory.EnumerateDirectories(_skillsDefinitionFolder).OrderBy(p => p);
+        var skillDirs = Directory.EnumerateDirectories(_skillsDefinitionFolder).OrderBy(p => p).ToList();
 
         foreach (var skillDir in skillDirs)
         {
             try
             {
+                var dirName = Path.GetFileName(skillDir);
+
                 // Look for SKILL.yaml or SKILL.yml in the subdirectory
                 var skillYaml = Path.Combine(skillDir, "SKILL.yaml");
                 var skillYml = Path.Combine(skillDir, "SKILL.yml");
 
                 string? yamlText = null;
-                if (File.Exists(skillYaml)) yamlText = File.ReadAllText(skillYaml);
-                else if (File.Exists(skillYml)) yamlText = File.ReadAllText(skillYml);
+                if (File.Exists(skillYaml))
+                {
+                    yamlText = File.ReadAllText(skillYaml);
+                }
+                else if (File.Exists(skillYml))
+                {
+                    yamlText = File.ReadAllText(skillYml);
+                }
+                else
+                {
+                    _logger.LogWarning("No SKILL.yaml or SKILL.yml found in skill directory: {SkillDir}", dirName);
+                    continue;
+                }
 
-                if (string.IsNullOrWhiteSpace(yamlText)) continue;
+                if (string.IsNullOrWhiteSpace(yamlText))
+                {
+                    _logger.LogWarning("SKILL file is empty in directory: {SkillDir}", dirName);
+                    continue;
+                }
 
                 var skill = _deserializer.Deserialize<SkillDto>(yamlText);
+
                 if (skill != null && !string.IsNullOrWhiteSpace(skill.Name))
                 {
                     // Build markdown content from description and instructions
                     skill.Content = BuildSkillMarkdown(skill.Description, skill.Instructions);
                     result[skill.Name] = skill;
+                    _logger.LogInformation("Loaded skill: {SkillName}", skill.Name);
+                }
+                else
+                {
+                    _logger.LogWarning("Skill deserialized but name is empty from {SkillDir}", dirName);
                 }
             }
             catch (Exception ex)
@@ -302,6 +325,7 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
             }
         }
 
+        _logger.LogInformation("Total skills loaded: {SkillCount}", result.Count);
         return result;
     }
 
