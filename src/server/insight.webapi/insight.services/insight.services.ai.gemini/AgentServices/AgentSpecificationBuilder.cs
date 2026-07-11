@@ -64,57 +64,18 @@ public static class AgentSpecificationBuilder
 
     private static string ExtractSkillDescription(SkillDto skill)
     {
-        if (string.IsNullOrWhiteSpace(skill.Content))
-            return "Specialized skill for the agent.";
-
-        // Try to extract description from YAML frontmatter
-        var lines = skill.Content.Split('\n');
-        foreach (var line in lines)
-        {
-            if (line.StartsWith("description:"))
-            {
-                var desc = line.Replace("description:", "").Trim().Trim('"');
-                return desc;
-            }
-        }
-
-        // Fallback: first non-empty line after frontmatter
-        var inFrontmatter = false;
-        foreach (var line in lines)
-        {
-            if (line.StartsWith("---"))
-            {
-                inFrontmatter = !inFrontmatter;
-                continue;
-            }
-
-            if (!inFrontmatter && !string.IsNullOrWhiteSpace(line) && !line.StartsWith("#"))
-            {
-                return line.Trim();
-            }
-        }
+        // Use description field if available
+        if (!string.IsNullOrWhiteSpace(skill.Description))
+            return skill.Description;
 
         return "Specialized skill for the agent.";
     }
 
     private static string ExtractWorkflowDescription(WorkflowDto workflow)
     {
-        if (string.IsNullOrWhiteSpace(workflow.Content))
-            return "Workflow for the agent.";
-
-        // Try to extract description from YAML
-        var lines = workflow.Content.Split('\n');
-        foreach (var line in lines)
-        {
-            if (line.StartsWith("description:"))
-            {
-                var desc = line.Replace("description:", "").Trim().Trim('"', '\'');
-                // Remove trailing quote if line ends with it
-                if (desc.EndsWith("\"") || desc.EndsWith("'"))
-                    desc = desc[..^1];
-                return desc;
-            }
-        }
+        // Use description field if available
+        if (!string.IsNullOrWhiteSpace(workflow.Description))
+            return workflow.Description;
 
         return "Workflow for the agent.";
     }

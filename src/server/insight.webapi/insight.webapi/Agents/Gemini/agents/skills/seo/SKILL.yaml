@@ -1,20 +1,24 @@
 name: seo
-description: "Optimize content for search engines without sacrificing readability."
-inputs:
-  - Verified Article
-responsibilities:
-  generate:
-    - SEO Title
-    - Meta Description
-    - Suggested Slug
-    - Keywords
-  review:
-    - Heading structure
-    - Keyword placement
-    - Internal linking opportunities
-    - FAQ section
-output:
-  - SEO Title
-  - Meta Description
-  - Keywords
-  - Optimized Article
+description: "SEO optimize article content"
+instructions: |
+  Purpose: Optimize article for search engines while maintaining readability and quality.
+
+  Generate:
+  - SEO Title (60 chars max, include primary keyword)
+  - Meta Description (160 chars max, compelling, includes call-to-action)
+  - URL Slug (kebab-case, 50 chars max)
+  - Primary and secondary keywords (5-10 keywords)
+  - H1 tag optimization
+
+  Review and Optimize:
+  - Heading structure (proper H1->H2->H3 hierarchy)
+  - Keyword placement (natural, 1-2% density)
+  - Internal linking opportunities
+  - FAQ section based on article
+  - Schema markup suggestions
+
+  Quality Standards:
+  - Maintain readability (no keyword stuffing)
+  - Preserve original meaning and value
+  - Improve user experience
+  - Ensure mobile-friendly formatting

@@ -28,9 +28,8 @@ public class GeminiModule : IModule
         // Bind options from configuration (appsettings.json)
         services.Configure<GeminiAgentOptions>(configuration.GetSection("GeminiAgents"));
 
-        // Register metadata providers and agent. Use YAML provider as the keyed default for Gemini.
+        // Register metadata provider. Use YAML as single source of truth for agent definitions.
         services.AddKeyedScoped<IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto>, YamlAgentMetadataProvider>(ModuleName);
-        services.AddScoped<IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto>, MarkdownAgentMetadataProvider>();
 
         // Register GeminiAgent implementing specific interfaces following SRP
         services.AddScoped<GeminiAgent>();

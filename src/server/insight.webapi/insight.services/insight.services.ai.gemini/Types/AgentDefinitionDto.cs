@@ -5,6 +5,9 @@ namespace Insight.Services.Ai.Gemini.Types;
 /// <summary>Agent definition with metadata and loaded resources for Gemini API.</summary>
 public class AgentDefinitionDto
 {
+    /// <summary>Agent unique identifier from YAML 'id' field.</summary>
+    public string? Id { get; set; }
+
     /// <summary>Agent display name (used in system instruction).</summary>
     public string? Name { get; set; }
 
@@ -48,6 +51,9 @@ public class WorkflowDto
     /// <summary>Workflow name (used as identifier and in environment source target).</summary>
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>Workflow description from YAML.</summary>
+    public string? Description { get; set; }
+
     /// <summary>Workflow YAML content (sent to Gemini as .agents/workflows/{Name}.yaml).</summary>
     public string Content { get; set; } = string.Empty;
 }
@@ -58,6 +64,13 @@ public class SkillDto
     /// <summary>Skill name (used as identifier and in environment source target).</summary>
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Skill markdown content (sent to Gemini as .agents/skills/{Name}/SKILL.md).</summary>
+    /// <summary>Skill description from YAML (used to build markdown content).</summary>
+    public string Description { get; set; } = string.Empty;
+
+    /// <summary>Skill instructions from YAML (used to build markdown content).</summary>
+    public string Instructions { get; set; } = string.Empty;
+
+    /// <summary>Skill markdown content built from description and instructions (sent to Gemini as .agents/skills/{Name}/SKILL.md).</summary>
+    [YamlIgnore]
     public string Content { get; set; } = string.Empty;
 }

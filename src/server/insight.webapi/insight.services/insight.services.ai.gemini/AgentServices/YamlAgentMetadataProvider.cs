@@ -271,33 +271,56 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
             return result;
         }
 
-        // Get all YAML files from the skills definition folder
-        var skillFiles = Directory.EnumerateFiles(_skillsDefinitionFolder)
-            .Where(f => f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || 
-                        f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase))
-            .OrderBy(p => p);
+        // Iterate through skill subdirectories
+        var skillDirs = Directory.EnumerateDirectories(_skillsDefinitionFolder).OrderBy(p => p);
 
-        foreach (var skillFile in skillFiles)
+        foreach (var skillDir in skillDirs)
         {
             try
             {
-                var yamlText = File.ReadAllText(skillFile);
+                // Look for SKILL.yaml or SKILL.yml in the subdirectory
+                var skillYaml = Path.Combine(skillDir, "SKILL.yaml");
+                var skillYml = Path.Combine(skillDir, "SKILL.yml");
+
+                string? yamlText = null;
+                if (File.Exists(skillYaml)) yamlText = File.ReadAllText(skillYaml);
+                else if (File.Exists(skillYml)) yamlText = File.ReadAllText(skillYml);
+
                 if (string.IsNullOrWhiteSpace(yamlText)) continue;
 
                 var skill = _deserializer.Deserialize<SkillDto>(yamlText);
                 if (skill != null && !string.IsNullOrWhiteSpace(skill.Name))
                 {
-                    skill.Content = yamlText;
+                    // Build markdown content from description and instructions
+                    skill.Content = BuildSkillMarkdown(skill.Description, skill.Instructions);
                     result[skill.Name] = skill;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to deserialize skill from {FilePath}", skillFile);
+                _logger.LogWarning(ex, "Failed to deserialize skill from {SkillDir}", skillDir);
             }
         }
 
         return result;
+    }
+
+    private static string BuildSkillMarkdown(string? description, string? instructions)
+    {
+        var content = new System.Text.StringBuilder();
+
+        if (!string.IsNullOrWhiteSpace(description))
+        {
+            content.AppendLine($"## {description}");
+            content.AppendLine();
+        }
+
+        if (!string.IsNullOrWhiteSpace(instructions))
+        {
+            content.AppendLine(instructions);
+        }
+
+        return content.ToString().TrimEnd();
     }
 
     public IDictionary<string, WorkflowDto> LoadWorkflow()
@@ -312,7 +335,7 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
 
         // Get all YAML files from the workflows definition folder
         var workflowFiles = Directory.EnumerateFiles(_workflowsDefinitionFolder)
-            .Where(f => f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || 
+            .Where(f => f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) ||
                         f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase))
             .OrderBy(p => p);
 
@@ -324,8 +347,15 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
                 if (string.IsNullOrWhiteSpace(yamlText)) continue;
 
                 var workflow = _deserializer.Deserialize<WorkflowDto>(yamlText);
-                if (workflow != null && !string.IsNullOrWhiteSpace(workflow.Name))
+                if (workflow != null)
                 {
+                    // Use filename (without extension) as the workflow name if not set
+                    if (string.IsNullOrWhiteSpace(workflow.Name))
+                    {
+                        workflow.Name = Path.GetFileNameWithoutExtension(workflowFile);
+                    }
+
+                    // Store raw YAML as content
                     workflow.Content = yamlText;
                     result[workflow.Name] = workflow;
                 }

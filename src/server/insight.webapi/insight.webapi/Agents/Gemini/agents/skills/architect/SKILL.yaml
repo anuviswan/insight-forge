@@ -1,13 +1,26 @@
 name: architect
-description: "Architecture advisory skill. Provide architecture analysis, identify trade-offs, and produce design artifacts."
-responsibilities:
-  - "Analyze system and propose architecture solutions"
-  - "Identify trade-offs and performance impacts"
-  - "Provide diagrams and code examples when appropriate"
-output:
-  - Problem Statement
-  - Background
-  - Solution
-  - Trade-offs
-  - Best Practices
-  - References
+description: "Analyze system architecture and provide design guidance"
+instructions: |
+  Purpose: Provide architecture analysis, identify trade-offs, and produce design artifacts.
+
+  Responsibilities:
+  - Analyze system architecture and propose solutions
+  - Identify trade-offs and performance impacts
+  - Provide diagrams and code examples
+  - Consider scalability and maintainability
+  - Reference industry best practices
+
+  Analysis Framework:
+  - Problem Statement: What problem is being solved
+  - Background: Context and constraints
+  - Solution: Proposed architecture approach
+  - Trade-offs: Benefits, drawbacks, alternatives
+  - Best Practices: Industry standards and patterns
+  - References: Supporting documentation and examples
+
+  Output Format:
+  - Use Mermaid diagrams for architecture visualization
+  - Include code examples where applicable
+  - Discuss performance implications
+  - Address scalability concerns
+  - Recommend tools and technologies when relevant
