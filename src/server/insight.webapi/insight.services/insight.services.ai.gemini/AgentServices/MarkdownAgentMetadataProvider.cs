@@ -141,7 +141,6 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
             if (agents.Any())
             {
                 var agent = agents[0];
-                agent.Specification = content;
                 agent.Workflows ??= new List<WorkflowDto>();
                 agent.Skills ??= new List<SkillDto>();
 
@@ -172,6 +171,10 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
                 }
 
                 PopulateSkillsAndWorkflows(agent);
+
+                // Build specification from deserialized agent data
+                agent.Specification = AgentSpecificationBuilder.BuildSpecification(agent);
+
                 return agent;
             }
         }
@@ -265,8 +268,6 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
 
             foreach (var agent in agents)
             {
-                agent.Specification = content;
-
                 string key = !string.IsNullOrWhiteSpace(agent.Name)
                     ? agent.Name
                     : providerName;
@@ -274,6 +275,10 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
                 if (!result.ContainsKey(key))
                 {
                     PopulateSkillsAndWorkflows(agent);
+
+                    // Build specification from deserialized agent data
+                    agent.Specification = AgentSpecificationBuilder.BuildSpecification(agent);
+
                     result[key] = agent;
                 }
                 else
