@@ -143,6 +143,20 @@ public class GeminiApiHttpClient : IGeminiApiClient
         }
 
         var response = await resp.Content.ReadFromJsonAsync<GeminiInteractionResponse>(cancellationToken: cancellationToken);
-        return response?.Output ?? response?.Result;
+
+        if (response?.Steps == null || response.Steps.Count == 0)
+            return null;
+
+        // Extract output from model_output step (the final step with actual output)
+        var modelOutputStep = response.Steps.LastOrDefault(s => s.Type == "model_output");
+        if (modelOutputStep?.Content != null && modelOutputStep.Content.Count > 0)
+        {
+            return modelOutputStep.Content
+                .Where(c => c.Type == "text" && !string.IsNullOrEmpty(c.Text))
+                .Select(c => c.Text)
+                .FirstOrDefault();
+        }
+
+        return null;
     }
 }

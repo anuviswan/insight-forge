@@ -7,47 +7,14 @@ public class GeminiAgentResponse
     [JsonPropertyName("id")]
     public string? Id { get; set; }
 
-    [JsonPropertyName("name")]
-    public string? Name { get; set; }
-
-    [JsonPropertyName("displayName")]
-    public string? DisplayName { get; set; }
-
-    [JsonPropertyName("description")]
-    public string? Description { get; set; }
-
-    [JsonPropertyName("instructions")]
-    public string? Instructions { get; set; }
-
-    [JsonPropertyName("baseAgent")]
+    [JsonPropertyName("base_agent")]
     public string? BaseAgent { get; set; }
 
-    [JsonPropertyName("state")]
-    public string? State { get; set; }
+    [JsonPropertyName("system_instruction")]
+    public string? SystemInstruction { get; set; }
 
-    [JsonPropertyName("createTime")]
-    public string? CreateTime { get; set; }
-
-    [JsonPropertyName("updateTime")]
-    public string? UpdateTime { get; set; }
-
-    [JsonPropertyName("systemInstruction")]
-    public SystemInstruction? SystemInstruction { get; set; }
-
-    [JsonPropertyName("baseEnvironment")]
+    [JsonPropertyName("base_environment")]
     public BaseEnvironment? BaseEnvironment { get; set; }
-}
-
-public class SystemInstruction
-{
-    [JsonPropertyName("parts")]
-    public List<Part>? Parts { get; set; }
-}
-
-public class Part
-{
-    [JsonPropertyName("text")]
-    public string? Text { get; set; }
 }
 
 public class BaseEnvironment
