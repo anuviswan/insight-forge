@@ -35,7 +35,6 @@ public class GeminiModule : IModule
         // Register GeminiAgent implementing specific interfaces following SRP
         services.AddScoped<GeminiAgent>();
         services.AddScoped<IBlogAgent>(sp => sp.GetRequiredService<GeminiAgent>());
-        services.AddScoped<IResearchAgent>(sp => sp.GetRequiredService<GeminiAgent>());
         services.AddScoped<IAgentOrchestrator>(sp => sp.GetRequiredService<GeminiAgent>());
     }
 }
