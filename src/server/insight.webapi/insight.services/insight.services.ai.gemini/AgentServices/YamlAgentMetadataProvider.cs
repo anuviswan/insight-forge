@@ -123,8 +123,6 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
             {
                 Console.WriteLine($"[YAML Deserialization] Found {collection.Agents.Count} agents");
                 var agent = collection.Agents[0];
-                agent.Provider = agentIdentifier;
-                agent.Content = yamlText;
                 agent.Workflows ??= new List<WorkflowDto>();
                 agent.Skills ??= new List<SkillDto>();
 
@@ -165,7 +163,6 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
             var mapped = _deserializer.Deserialize<AgentDefinitionDto>(yamlText);
             if (mapped != null)
             {
-                mapped.Content = yamlText;
                 mapped.Workflows ??= new List<WorkflowDto>();
                 mapped.Skills ??= new List<SkillDto>();
                 PopulateSkillsAndWorkflows(mapped);
@@ -260,9 +257,6 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
 
             foreach (var agent in collection.Agents)
             {
-                agent.Provider = providerName;
-                agent.Content = yamlText;
-
                 string key = !string.IsNullOrWhiteSpace(agent.Name)
                     ? agent.Name
                     : providerName;
