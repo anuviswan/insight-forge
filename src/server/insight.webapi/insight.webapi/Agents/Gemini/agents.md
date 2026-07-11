@@ -20,8 +20,17 @@ Research a given topic and produce a technical article using approved templates
  - Ensure code snippets are compilable
  - Use SEO keywords when required
  - Verify factual accuracy of information
- 
- 
+
+**Skills**
+
+ - research
+ - outline
+ - writer
+ - seo
+ - originality-check
+ - dotnet-evangelist
+ - architect
+
  ## Workflows
   - create-blogpost
 

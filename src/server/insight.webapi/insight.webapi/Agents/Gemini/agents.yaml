@@ -12,6 +12,14 @@ agents:
       - "Ensure code snippets are compilable"
       - "Use SEO keywords when required"
       - "Verify factual accuracy of information"
+    skills:
+      - research
+      - outline
+      - writer
+      - seo
+      - originality-check
+      - dotnet-evangelist
+      - architect
 
 workflows:
   - create-blogpost
