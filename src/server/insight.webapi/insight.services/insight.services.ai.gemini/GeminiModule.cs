@@ -19,7 +19,9 @@ public class GeminiModule : IModule
     {
         services.AddHttpClient<IGeminiApiClient, GeminiApiHttpClient>(client =>
         {
-            var baseUrl = configuration["Antigravity:BaseUrl"] ?? "https://generativelanguage.googleapis.com/v1beta/";
+            var baseUrl = configuration["GeminiAgent:BaseUrl"]
+                ?? configuration["Antigravity:BaseUrl"]
+                ?? "https://generativelanguage.googleapis.com/v1beta/";
             client.BaseAddress = new Uri(baseUrl);
         });
 

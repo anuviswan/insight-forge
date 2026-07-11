@@ -17,11 +17,15 @@ public class GeminiApiHttpClient : IGeminiApiClient
         _http = http;
         _logger = logger;
 
-        var apiKey = config["Antigravity:ApiKey"];
+        var apiKey = config["GeminiAgent:ApiKey"] ?? config["Antigravity:ApiKey"];
         if (!string.IsNullOrWhiteSpace(apiKey))
         {
             if (!_http.DefaultRequestHeaders.Contains("x-goog-api-key"))
                 _http.DefaultRequestHeaders.Add("x-goog-api-key", apiKey);
+        }
+        else
+        {
+            _logger.LogWarning("Gemini API key not configured. Set 'GeminiAgent:ApiKey' in appsettings.json");
         }
     }
 
