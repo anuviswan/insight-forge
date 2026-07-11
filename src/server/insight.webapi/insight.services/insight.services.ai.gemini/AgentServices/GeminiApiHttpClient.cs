@@ -98,17 +98,36 @@ public class GeminiApiHttpClient : IGeminiApiClient
             }
         };
 
-        // Log the request payload for debugging
-        _logger.LogInformation("Creating managed agent '{AgentId}' with:", agentId);
-        _logger.LogInformation("  - System Instruction length: {Length}", systemInstruction?.Length ?? 0);
-        _logger.LogInformation("  - Agent Definition: {HasDefinition}", agentDefinition != null);
+        // Detailed logging for debugging
+        Console.WriteLine($"\n========== CREATE AGENT REQUEST ==========");
+        Console.WriteLine($"Agent ID: {agentId}");
+        Console.WriteLine($"Base Agent: {BaseAgentModel}");
+        Console.WriteLine($"System Instruction Length: {systemInstruction?.Length ?? 0}");
+        Console.WriteLine($"\nAgent Definition:");
         if (agentDefinition != null)
         {
-            _logger.LogInformation("    - Agents MD: {HasAgentsMd}", !string.IsNullOrWhiteSpace(agentDefinition.AgentsMd));
-            _logger.LogInformation("    - Workflows count: {Count}", agentDefinition.Workflows?.Count ?? 0);
-            _logger.LogInformation("    - Skills count: {Count}", agentDefinition.Skills?.Count ?? 0);
+            Console.WriteLine($"  Name: {agentDefinition.Name}");
+            Console.WriteLine($"  AgentsMd Present: {!string.IsNullOrWhiteSpace(agentDefinition.AgentsMd)}");
+            Console.WriteLine($"  AgentsMd Length: {agentDefinition.AgentsMd?.Length ?? 0}");
+            Console.WriteLine($"  Workflows: {agentDefinition.Workflows?.Count ?? 0}");
+            if (agentDefinition.Workflows?.Count > 0)
+            {
+                foreach (var wf in agentDefinition.Workflows)
+                    Console.WriteLine($"    - {wf.Name} ({wf.Content?.Length ?? 0} chars)");
+            }
+            Console.WriteLine($"  Skills: {agentDefinition.Skills?.Count ?? 0}");
+            if (agentDefinition.Skills?.Count > 0)
+            {
+                foreach (var skill in agentDefinition.Skills)
+                    Console.WriteLine($"    - {skill.Name} ({skill.Content?.Length ?? 0} chars)");
+            }
         }
-        _logger.LogInformation("  - Environment sources count: {Count}", environmentSources.Count);
+        else
+        {
+            Console.WriteLine("  NULL - No agent definition provided!");
+        }
+        Console.WriteLine($"\nEnvironment Sources: {environmentSources.Count}");
+        Console.WriteLine($"=========================================\n");
 
         HttpResponseMessage resp;
         try
