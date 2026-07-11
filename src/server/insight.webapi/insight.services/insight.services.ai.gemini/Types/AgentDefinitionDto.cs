@@ -6,21 +6,27 @@ namespace Insight.Services.Ai.Gemini.Types;
 public class AgentDefinitionDto
 {
     /// <summary>Agent unique identifier from YAML 'id' field.</summary>
+    [YamlMember(Alias = "id")]
     public string? Id { get; set; }
 
     /// <summary>Agent display name (used in system instruction).</summary>
+    [YamlMember(Alias = "name")]
     public string? Name { get; set; }
 
     /// <summary>Agent role/purpose (used in system instruction).</summary>
+    [YamlMember(Alias = "role")]
     public string? Role { get; set; }
 
     /// <summary>Agent responsibilities (used in system instruction).</summary>
+    [YamlMember(Alias = "responsibilities")]
     public List<string>? Responsibilities { get; set; }
 
     /// <summary>Agent specification markdown (sent to Gemini as .agents/AGENTS.md).</summary>
+    [YamlIgnore]
     public string? Specification { get; set; }
 
     /// <summary>Loaded workflow definitions (sent to Gemini as .agents/workflows/*.yaml).</summary>
+    [YamlIgnore]
     public List<WorkflowDto>? Workflows { get; set; }
 
     /// <summary>Loaded skill definitions (sent to Gemini as .agents/skills/*/SKILL.md).</summary>
@@ -29,10 +35,11 @@ public class AgentDefinitionDto
 
     /// <summary>Skill names from YAML 'skills' field (used during deserialization to load Skills).</summary>
     [YamlMember(Alias = "skills")]
-    internal List<string>? SkillNames { get; set; }
+    public List<string>? SkillNames { get; set; }
 
     /// <summary>Workflow names from YAML root 'workflows' field (used during deserialization to load Workflows).</summary>
-    internal List<string>? WorkflowNames { get; set; }
+    [YamlMember(Alias = "workflows")]
+    public List<string>? WorkflowNames { get; set; }
 }
 
 /// <summary>Top-level YAML collection structure for agents and workflows.</summary>
