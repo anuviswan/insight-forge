@@ -36,11 +36,11 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
         _skillsCache ??= LoadSkills();
         _workflowsCache ??= LoadWorkflow();
 
-        // Populate Skills from names using the cached dictionary
-        if (dto.SkillsNames?.Any() == true)
+        // Populate Skills from SkillNames (loaded from YAML)
+        if (dto.SkillNames?.Any() == true)
         {
             dto.Skills = new List<SkillDto>();
-            foreach (var skillName in dto.SkillsNames)
+            foreach (var skillName in dto.SkillNames)
             {
                 if (_skillsCache.TryGetValue(skillName, out var skillDto))
                 {
@@ -54,11 +54,11 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
             }
         }
 
-        // Populate Workflows from names using the cached dictionary
-        if (dto.WorkflowsNames?.Any() == true)
+        // Populate Workflows from WorkflowNames (loaded from YAML)
+        if (dto.WorkflowNames?.Any() == true)
         {
             dto.Workflows = new List<WorkflowDto>();
-            foreach (var workflowName in dto.WorkflowsNames)
+            foreach (var workflowName in dto.WorkflowNames)
             {
                 if (_workflowsCache.TryGetValue(workflowName, out var workflowDto))
                 {

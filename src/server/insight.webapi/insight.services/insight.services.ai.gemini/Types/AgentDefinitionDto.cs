@@ -8,7 +8,16 @@ public class AgentDefinitionDto
     public string? Provider { get; set; }
     public string? AgentsMd { get; set; }
 
+    /// <summary>Skill names from YAML - used to load actual skill definitions</summary>
+    public List<string>? SkillNames { get; set; }
+
+    /// <summary>Workflow names from YAML - used to load actual workflow definitions</summary>
+    public List<string>? WorkflowNames { get; set; }
+
+    /// <summary>Computed property: names extracted from loaded Skills</summary>
     public IEnumerable<string>? SkillsNames => Skills?.Select(s => s.Name);
+
+    /// <summary>Computed property: names extracted from loaded Workflows</summary>
     public IEnumerable<string>? WorkflowsNames => Workflows?.Select(w => w.Name);
 
     public List<WorkflowDto>? Workflows { get; set; }

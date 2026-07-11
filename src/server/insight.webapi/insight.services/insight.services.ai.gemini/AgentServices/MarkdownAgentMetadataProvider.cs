@@ -36,7 +36,43 @@ public class MarkdownAgentMetadataProvider : IAgentMetadataProvider<AgentDefinit
         _skillsCache ??= LoadSkills();
         _workflowsCache ??= LoadWorkflow();
 
-        // Ensure lists are initialized
+        // Populate Skills from SkillNames (loaded from YAML/Markdown)
+        if (dto.SkillNames?.Any() == true)
+        {
+            dto.Skills = new List<SkillDto>();
+            foreach (var skillName in dto.SkillNames)
+            {
+                if (_skillsCache.TryGetValue(skillName, out var skillDto))
+                {
+                    dto.Skills.Add(skillDto);
+                }
+                else
+                {
+                    _logger.LogWarning("Skill '{SkillName}' referenced but not found in definitions", skillName);
+                    dto.Skills.Add(new SkillDto { Name = skillName });
+                }
+            }
+        }
+
+        // Populate Workflows from WorkflowNames (loaded from YAML/Markdown)
+        if (dto.WorkflowNames?.Any() == true)
+        {
+            dto.Workflows = new List<WorkflowDto>();
+            foreach (var workflowName in dto.WorkflowNames)
+            {
+                if (_workflowsCache.TryGetValue(workflowName, out var workflowDto))
+                {
+                    dto.Workflows.Add(workflowDto);
+                }
+                else
+                {
+                    _logger.LogWarning("Workflow '{WorkflowName}' referenced but not found in definitions", workflowName);
+                    dto.Workflows.Add(new WorkflowDto { Name = workflowName });
+                }
+            }
+        }
+
+        // Ensure lists are initialized even if empty
         dto.Skills ??= new List<SkillDto>();
         dto.Workflows ??= new List<WorkflowDto>();
     }
