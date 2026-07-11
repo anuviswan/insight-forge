@@ -7,6 +7,7 @@ using Insight.Services.Interfaces.Core;
 using Insight.WebApi.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System.ComponentModel;
 
 namespace Insight.Services.Ai.Gemini;
 

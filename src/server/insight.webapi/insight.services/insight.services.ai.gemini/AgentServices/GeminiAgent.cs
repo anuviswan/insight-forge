@@ -1,6 +1,7 @@
 using Insight.Services.Ai.Gemini.Interfaces;
 using Insight.Services.Ai.Gemini.Types;
 using Insight.Services.Interfaces.Ai;
+using Insight.Services.Interfaces.Core;
 
 namespace Insight.Services.Ai.Gemini.AgentServices;
 
@@ -32,7 +33,7 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
         return result ?? agentId;
     }
 
-    public async Task<string> CreateBlogPostAsync(string topic, string audience, string writingStyle, CancellationToken cancellationToken = default)
+    public async Task<BlogEntry> CreateBlogPostAsync(string topic, string audience, string writingStyle, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(topic))
             throw new ArgumentException("Topic must be provided", nameof(topic));
@@ -47,7 +48,7 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
         var input = BuildBlogPrompt(topic, audience, writingStyle);
 
         var result = await apiClient.RunAgentInteractionAsync(AgentId, input, cancellationToken).ConfigureAwait(false);
-        return result ?? string.Empty;
+        return new BlogEntry { Content = result ?? string.Empty };
     }
 
     private static string BuildBlogPrompt(string topic, string audience, string writingStyle)
@@ -60,7 +61,11 @@ public class GeminiAgent(IGeminiApiClient apiClient, IAgentMetadataProvider<Agen
         if (!string.IsNullOrWhiteSpace(writingStyle))
             prompt += $"\n\nWriting Style/Tone: {writingStyle.Trim()}";
 
-        prompt += "\n\nProvide the complete blog post in well-formatted Markdown.";
+        prompt += "\n\nIMPORTANT: Include citations and references in your blog post:\n"
+                + "- Use markdown links [text](url) for citations throughout the content\n"
+                + "- Include a ## References section at the end with a bulleted list of sources\n"
+                + "- Ensure the blog post is well-structured with proper headings\n"
+                + "Provide the complete blog post in well-formatted Markdown.";
 
         return prompt;
     }

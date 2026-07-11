@@ -41,7 +41,6 @@ public class Program
         });
 
         RegisterModules(builder.Services, builder.Configuration);
-        builder.Services.AddScoped<IBlogService, BlogService>();
         builder.Services.AddScoped<IResearchService, ResearchService>();
 
         var app = builder.Build();
@@ -158,6 +157,7 @@ public class Program
         var modules = new IModule[]
         {
             new AuthenticationModule(),
+            new global::Insight.Services.Core.Modules.CoreModule(),
             new global::Insight.Services.Ai.Gemini.GeminiModule(),
         };
 
