@@ -141,7 +141,7 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
                 agent.Specification = AgentSpecificationBuilder.BuildSpecification(agent);
                 Console.WriteLine($"[YAML Deserialization] Built specification: {agent.Specification?.Length ?? 0} chars");
 
-                return agent;
+                return agent;   
             }
 
             Console.WriteLine($"[YAML Deserialization] Collection empty or null, trying direct deserialization");
