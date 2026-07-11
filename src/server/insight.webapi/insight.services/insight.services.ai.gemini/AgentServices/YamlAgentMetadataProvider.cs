@@ -112,19 +112,28 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
 
         try
         {
+            Console.WriteLine($"\n[YAML Deserialization] Attempting to deserialize agent: {agentIdentifier}");
+            Console.WriteLine($"[YAML Deserialization] YAML content length: {yamlText?.Length ?? 0}");
+            Console.WriteLine($"[YAML Deserialization] First 200 chars: {yamlText?.Substring(0, Math.Min(200, yamlText.Length))}");
+
             // Try to deserialize as collection first (new pattern)
             var collection = _deserializer.Deserialize<AgentsCollectionDto>(yamlText);
+            Console.WriteLine($"[YAML Deserialization] Collection deserialized: {collection != null}");
             if (collection?.Agents?.Any() == true)
             {
+                Console.WriteLine($"[YAML Deserialization] Found {collection.Agents.Count} agents");
                 var agent = collection.Agents[0];
                 agent.Provider = agentIdentifier;
                 agent.Content = yamlText;
                 agent.Workflows ??= new List<WorkflowDto>();
                 agent.Skills ??= new List<SkillDto>();
+                Console.WriteLine($"[YAML Deserialization] Before PopulateSkillsAndWorkflows - Skills: {agent.SkillNames?.Count() ?? 0}, Workflows: {agent.WorkflowNames?.Count() ?? 0}");
                 PopulateSkillsAndWorkflows(agent);
+                Console.WriteLine($"[YAML Deserialization] After PopulateSkillsAndWorkflows - Skills: {agent.Skills?.Count ?? 0}, Workflows: {agent.Workflows?.Count ?? 0}");
                 return agent;
             }
 
+            Console.WriteLine($"[YAML Deserialization] Collection empty or null, trying direct deserialization");
             // Fallback: try direct deserialization (backward compatibility)
             var mapped = _deserializer.Deserialize<AgentDefinitionDto>(yamlText);
             if (mapped != null)
@@ -138,6 +147,10 @@ public class YamlAgentMetadataProvider : IAgentMetadataProvider<AgentDefinitionD
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"\n[YAML Deserialization ERROR] Failed to deserialize {agentIdentifier}");
+            Console.WriteLine($"[YAML Deserialization ERROR] Exception: {ex.GetType().Name}");
+            Console.WriteLine($"[YAML Deserialization ERROR] Message: {ex.Message}");
+            Console.WriteLine($"[YAML Deserialization ERROR] StackTrace: {ex.StackTrace}\n");
             _logger.LogWarning(ex, "Failed to deserialize YAML for {AgentIdentifier}", agentIdentifier);
         }
 
