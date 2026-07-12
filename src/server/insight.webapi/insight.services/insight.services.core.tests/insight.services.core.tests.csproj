@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net11.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -15,6 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="../insight.services.interfaces/insight.services.interfaces.csproj" />
     <ProjectReference Include="../insight.services.core/insight.services.core.csproj" />
+    <ProjectReference Include="../insight.services.ai.gemini/insight.services.ai.gemini.csproj" />
   </ItemGroup>
 
   <ItemGroup>

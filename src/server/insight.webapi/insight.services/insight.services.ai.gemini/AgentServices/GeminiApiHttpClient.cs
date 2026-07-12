@@ -1,4 +1,6 @@
 using Insight.Services.Ai.Gemini.Interfaces;
+using Insight.Services.Ai.Gemini.Streaming;
+using Insight.Services.Ai.Gemini.Streaming.Types;
 using Insight.Services.Ai.Gemini.Types;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -10,12 +12,14 @@ public class GeminiApiHttpClient : IGeminiApiClient
 {
     private readonly HttpClient _http;
     private readonly ILogger<GeminiApiHttpClient> _logger;
+    private readonly ILoggerFactory _loggerFactory;
     private const string BaseAgentModel = "antigravity-preview-05-2026";
 
-    public GeminiApiHttpClient(HttpClient http, IConfiguration config, ILogger<GeminiApiHttpClient> logger)
+    public GeminiApiHttpClient(HttpClient http, IConfiguration config, ILogger<GeminiApiHttpClient> logger, ILoggerFactory loggerFactory)
     {
         _http = http;
         _logger = logger;
+        _loggerFactory = loggerFactory;
 
         var apiKey = config["GeminiAgent:ApiKey"] ?? config["Antigravity:ApiKey"];
         if (!string.IsNullOrWhiteSpace(apiKey))
@@ -201,5 +205,15 @@ public class GeminiApiHttpClient : IGeminiApiClient
         }
 
         return null;
+    }
+
+    public IAsyncEnumerable<GeminiStreamEvent> StreamAgentInteractionAsync(string agentId, string input, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(agentId, nameof(agentId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(input, nameof(input));
+
+        var wrapperLogger = _loggerFactory.CreateLogger<GeminiStreamWrapper>();
+        var wrapper = new GeminiStreamWrapper(_http, wrapperLogger);
+        return wrapper.StreamAsync(agentId, input, cancellationToken);
     }
 }
