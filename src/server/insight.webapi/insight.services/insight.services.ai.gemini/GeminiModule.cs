@@ -31,6 +31,9 @@ public class GeminiModule : IModule
         // Register metadata provider. Use YAML as single source of truth for agent definitions.
         services.AddKeyedScoped<IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto>, YamlAgentMetadataProvider>(ModuleName);
 
+        // Register job agent service for managing active streaming jobs
+        services.AddSingleton<IJobAgentService, JobAgentService>();
+
         // Register GeminiAgent implementing specific interfaces following SRP
         services.AddScoped<GeminiAgent>();
         services.AddScoped<IBlogAgent>(sp => sp.GetRequiredService<GeminiAgent>());

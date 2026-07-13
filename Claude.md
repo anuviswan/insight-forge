@@ -76,6 +76,9 @@ Explain:
 # Implementation
 
 - Always create a feature branch for implementation
+- Always add class descriptions (comments)
+- Always add method description (comments)
+- Additionally add comments when complex logic exists
 
 # Commit
 
