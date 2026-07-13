@@ -9,6 +9,7 @@ defineProps<Props>();
 
 const emit = defineEmits<{
   retry: [];
+  cancel: [];
 }>();
 </script>
 
@@ -23,9 +24,14 @@ const emit = defineEmits<{
       <span class="error-message">{{ error.message }}</span>
       <span class="error-type">{{ error.errorType }}</span>
     </div>
-    <button class="btn btn-secondary retry-btn" @click="emit('retry')">
-      Retry
-    </button>
+    <div class="error-actions">
+      <button v-if="error.retryable" class="btn btn-secondary retry-btn" @click="emit('retry')">
+        Retry
+      </button>
+      <button class="btn btn-secondary cancel-btn" @click="emit('cancel')">
+        Cancel
+      </button>
+    </div>
   </div>
 </template>
 
@@ -65,8 +71,14 @@ const emit = defineEmits<{
   color: var(--text-muted);
 }
 
-.retry-btn {
+.error-actions {
+  display: flex;
+  gap: var(--space-sm);
   flex-shrink: 0;
+}
+
+.retry-btn,
+.cancel-btn {
   padding: 6px var(--space-md);
   font-size: var(--font-size-xs);
 }

@@ -17,15 +17,29 @@ public class GeminiStreamWrapper
         _logger = logger;
     }
 
+    public IAsyncEnumerable<GeminiStreamEvent> StreamAsync(
+        string agentId,
+        string input,
+        CancellationToken cancellationToken = default)
+        => StreamAsync(agentId, input, previousInteractionId: null, cancellationToken);
+
+    /// <summary>
+    /// Streams agent interaction events. When <paramref name="previousInteractionId"/> is
+    /// provided, asks the API to resume that interaction (a partial retry) instead of
+    /// starting a new one from scratch.
+    /// </summary>
     public async IAsyncEnumerable<GeminiStreamEvent> StreamAsync(
         string agentId,
         string input,
+        string? previousInteractionId,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(agentId, nameof(agentId));
         ArgumentException.ThrowIfNullOrWhiteSpace(input, nameof(input));
 
-        var payload = new { agent = agentId, input = input };
+        object payload = string.IsNullOrWhiteSpace(previousInteractionId)
+            ? new { agent = agentId, input = input }
+            : new { agent = agentId, input = input, previous_interaction_id = previousInteractionId };
         HttpResponseMessage resp;
 
         try
@@ -47,7 +61,7 @@ public class GeminiStreamWrapper
         {
             var body = await resp.Content.ReadAsStringAsync(cancellationToken);
             _logger.LogWarning("Gemini API returned {Status}: {Body}", resp.StatusCode, body);
-            throw new HttpRequestException($"Gemini API returned {resp.StatusCode}");
+            throw new HttpRequestException($"Gemini API returned {resp.StatusCode}", inner: null, statusCode: resp.StatusCode);
         }
 
         using var contentStream = await resp.Content.ReadAsStreamAsync(cancellationToken);

@@ -26,6 +26,13 @@ public interface IFunctionResultService
     bool HasPendingFunctionCall(string jobId);
 
     /// <summary>
+    /// Manually retry a pending function call that timed out, re-publishing the
+    /// FunctionCalled event and resetting its timeout window.
+    /// </summary>
+    /// <returns>False if there is no pending, unexecuted function call for this job.</returns>
+    Task<bool> RetryFunctionCallAsync(string jobId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Clear function execution state for a job (cleanup)
     /// </summary>
     void ClearFunctionState(string jobId);

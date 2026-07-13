@@ -1,7 +1,9 @@
 using Insight.Services.Ai.Gemini.AgentServices;
+using Insight.Services.Ai.Gemini.Options;
 using Insight.Services.Interfaces.Ai;
 using Insight.Services.Interfaces.Ai.Events;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
@@ -26,7 +28,12 @@ public class FunctionResultServiceTests
             .Setup(x => x.GetEventBus(It.IsAny<string>()))
             .Returns(_eventBusMock.Object);
 
-        _service = new FunctionResultService(_jobAgentServiceMock.Object, _loggerMock.Object);
+        var options = Microsoft.Extensions.Options.Options.Create(new StreamingErrorPolicyOptions
+        {
+            FunctionExecutionTimeout = TimeSpan.FromMinutes(10) // long enough that tests never hit the timeout unintentionally
+        });
+
+        _service = new FunctionResultService(_jobAgentServiceMock.Object, options, _loggerMock.Object);
     }
 
     [TestMethod]
@@ -266,5 +273,120 @@ public class FunctionResultServiceTests
         {
             // Expected
         }
+    }
+
+    [TestMethod]
+    public async Task RetryFunctionCallAsync_WithPendingCall_RepublishesFunctionCalledEvent()
+    {
+        var jobId = "job-123";
+        var details = new FunctionCallDetails
+        {
+            FunctionId = "func-001",
+            FunctionName = "search",
+            Arguments = new Dictionary<string, object> { { "query", "test" } }
+        };
+
+        await _service.RegisterFunctionCallAsync(jobId, details);
+        _eventBusMock.Reset();
+        _eventBusMock.Setup(x => x.PublishAsync(It.IsAny<AgentStatusEvent>(), It.IsAny<CancellationToken>())).Returns(ValueTask.CompletedTask);
+
+        var retried = await _service.RetryFunctionCallAsync(jobId);
+
+        Assert.IsTrue(retried);
+        _eventBusMock.Verify(
+            x => x.PublishAsync(It.Is<AgentStatusEvent>(e => e.EventType == AgentEventType.FunctionCalled), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [TestMethod]
+    public async Task RetryFunctionCallAsync_WithNoPendingCall_ReturnsFalse()
+    {
+        var retried = await _service.RetryFunctionCallAsync("nonexistent-job");
+        Assert.IsFalse(retried);
+    }
+
+    [TestMethod]
+    public async Task RetryFunctionCallAsync_AfterExecution_ReturnsFalse()
+    {
+        var jobId = "job-123";
+        var details = new FunctionCallDetails { FunctionId = "func-001", FunctionName = "search" };
+
+        await _service.RegisterFunctionCallAsync(jobId, details);
+        await _service.SubmitFunctionResultAsync(jobId, "func-001", "result data");
+
+        var retried = await _service.RetryFunctionCallAsync(jobId);
+        Assert.IsFalse(retried);
+    }
+}
+
+[TestClass]
+public class FunctionResultServiceTimeoutTests
+{
+    [TestMethod]
+    public async Task RegisterFunctionCallAsync_UnresolvedPastTimeout_PublishesRetryableErrorEvent()
+    {
+        var jobAgentServiceMock = new Mock<IJobAgentService>();
+        var eventBusMock = new Mock<IEventBus>();
+        var publishedEvents = new List<AgentStatusEvent>();
+
+        jobAgentServiceMock.Setup(x => x.GetEventBus(It.IsAny<string>())).Returns(eventBusMock.Object);
+        eventBusMock
+            .Setup(x => x.PublishAsync(It.IsAny<AgentStatusEvent>(), It.IsAny<CancellationToken>()))
+            .Callback<AgentStatusEvent, CancellationToken>((e, _) => publishedEvents.Add(e))
+            .Returns(ValueTask.CompletedTask);
+
+        var options = Microsoft.Extensions.Options.Options.Create(new StreamingErrorPolicyOptions
+        {
+            FunctionExecutionTimeout = TimeSpan.FromMilliseconds(50)
+        });
+
+        var service = new FunctionResultService(jobAgentServiceMock.Object, options, Mock.Of<ILogger<FunctionResultService>>());
+
+        await service.RegisterFunctionCallAsync("job-timeout", new FunctionCallDetails
+        {
+            FunctionId = "func-001",
+            FunctionName = "slow_search"
+        });
+
+        // Wait past the timeout window for the background timer to fire.
+        await Task.Delay(TimeSpan.FromMilliseconds(500));
+
+        var timeoutEvent = publishedEvents.FirstOrDefault(e => e.EventType == AgentEventType.Error);
+        Assert.IsNotNull(timeoutEvent, "Expected a timeout Error event to be published");
+        Assert.AreEqual("FunctionExecutionTimeout", timeoutEvent.Error?.ErrorType);
+        Assert.IsTrue(timeoutEvent.Error!.Retryable, "Function execution timeouts should be retryable");
+    }
+
+    [TestMethod]
+    public async Task SubmitFunctionResultAsync_BeforeTimeout_PreventsTimeoutEvent()
+    {
+        var jobAgentServiceMock = new Mock<IJobAgentService>();
+        var eventBusMock = new Mock<IEventBus>();
+        var publishedEvents = new List<AgentStatusEvent>();
+
+        jobAgentServiceMock.Setup(x => x.GetEventBus(It.IsAny<string>())).Returns(eventBusMock.Object);
+        eventBusMock
+            .Setup(x => x.PublishAsync(It.IsAny<AgentStatusEvent>(), It.IsAny<CancellationToken>()))
+            .Callback<AgentStatusEvent, CancellationToken>((e, _) => publishedEvents.Add(e))
+            .Returns(ValueTask.CompletedTask);
+
+        var options = Microsoft.Extensions.Options.Options.Create(new StreamingErrorPolicyOptions
+        {
+            FunctionExecutionTimeout = TimeSpan.FromMilliseconds(100)
+        });
+
+        var service = new FunctionResultService(jobAgentServiceMock.Object, options, Mock.Of<ILogger<FunctionResultService>>());
+
+        await service.RegisterFunctionCallAsync("job-fast", new FunctionCallDetails
+        {
+            FunctionId = "func-001",
+            FunctionName = "fast_search"
+        });
+        await service.SubmitFunctionResultAsync("job-fast", "func-001", "done");
+
+        // Wait past what would have been the timeout window.
+        await Task.Delay(TimeSpan.FromMilliseconds(300));
+
+        Assert.IsFalse(publishedEvents.Any(e => e.EventType == AgentEventType.Error), "Timeout event should not fire once the result was submitted in time");
     }
 }

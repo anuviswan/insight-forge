@@ -1,6 +1,8 @@
+using Insight.Services.Ai.Gemini.Options;
 using Insight.Services.Interfaces.Ai;
 using Insight.Services.Interfaces.Ai.Events;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Insight.Services.Ai.Gemini.AgentServices;
 
@@ -10,15 +12,18 @@ namespace Insight.Services.Ai.Gemini.AgentServices;
 public class FunctionResultService : IFunctionResultService
 {
     private readonly IJobAgentService _jobAgentService;
+    private readonly StreamingErrorPolicyOptions _options;
     private readonly ILogger<FunctionResultService> _logger;
     private readonly Dictionary<string, FunctionExecutionState> _executionStates = new();
     private readonly object _lock = new();
 
     public FunctionResultService(
         IJobAgentService jobAgentService,
+        IOptions<StreamingErrorPolicyOptions> options,
         ILogger<FunctionResultService> logger)
     {
         _jobAgentService = jobAgentService;
+        _options = options.Value;
         _logger = logger;
     }
 
@@ -32,11 +37,15 @@ public class FunctionResultService : IFunctionResultService
 
         lock (_lock)
         {
+            _executionStates.Remove(jobId, out var previous);
+            previous?.TimeoutTimer?.Dispose();
+
             _executionStates[jobId] = new FunctionExecutionState
             {
                 JobId = jobId,
                 FunctionCall = details,
-                RegisteredAt = DateTime.UtcNow
+                RegisteredAt = DateTime.UtcNow,
+                TimeoutTimer = new Timer(OnFunctionExecutionTimeout, jobId, _options.FunctionExecutionTimeout, Timeout.InfiniteTimeSpan)
             };
         }
 
@@ -65,6 +74,107 @@ public class FunctionResultService : IFunctionResultService
 
             await eventBus.PublishAsync(pauseEvent, cancellationToken);
         }
+    }
+
+    /// <summary>
+    /// Timer callback fired when a registered function call has not been resolved
+    /// within <see cref="StreamingErrorPolicyOptions.FunctionExecutionTimeout"/>.
+    /// </summary>
+    private void OnFunctionExecutionTimeout(object? state)
+    {
+        var jobId = (string)state!;
+        _ = HandleFunctionExecutionTimeoutAsync(jobId);
+    }
+
+    private async Task HandleFunctionExecutionTimeoutAsync(string jobId)
+    {
+        try
+        {
+            FunctionCallDetails pending;
+            lock (_lock)
+            {
+                if (!_executionStates.TryGetValue(jobId, out var execState) || execState.FunctionCall.Executed)
+                    return;
+
+                pending = execState.FunctionCall;
+            }
+
+            _logger.LogWarning(
+                "Function call {FunctionName} (ID: {FunctionId}) timed out after {Timeout} for job {JobId}",
+                pending.FunctionName, pending.FunctionId, _options.FunctionExecutionTimeout, jobId);
+
+            var eventBus = _jobAgentService.GetEventBus(jobId);
+            if (eventBus == null)
+                return;
+
+            var timeoutEvent = new AgentStatusEvent
+            {
+                EventId = Guid.NewGuid(),
+                InteractionId = pending.InteractionId ?? string.Empty,
+                Timestamp = DateTime.UtcNow,
+                EventType = AgentEventType.Error,
+                Status = $"Function call timed out: {pending.FunctionName}",
+                Error = new ErrorData
+                {
+                    ErrorType = "FunctionExecutionTimeout",
+                    Message = $"Function '{pending.FunctionName}' did not complete within {_options.FunctionExecutionTimeout.TotalSeconds:0}s. It can be retried manually.",
+                    Retryable = true
+                },
+                Data = new Dictionary<string, object>
+                {
+                    { "function_name", pending.FunctionName },
+                    { "function_id", pending.FunctionId }
+                }
+            };
+
+            await eventBus.PublishAsync(timeoutEvent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling function execution timeout for job {JobId}", jobId);
+        }
+    }
+
+    public async Task<bool> RetryFunctionCallAsync(string jobId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(jobId, nameof(jobId));
+
+        FunctionExecutionState state;
+        lock (_lock)
+        {
+            if (!_executionStates.TryGetValue(jobId, out var found) || found.FunctionCall.Executed)
+                return false;
+
+            state = found;
+            state.TimeoutTimer?.Change(_options.FunctionExecutionTimeout, Timeout.InfiniteTimeSpan);
+        }
+
+        _logger.LogInformation(
+            "Manually retrying function call {FunctionName} (ID: {FunctionId}) for job {JobId}",
+            state.FunctionCall.FunctionName, state.FunctionCall.FunctionId, jobId);
+
+        var eventBus = _jobAgentService.GetEventBus(jobId);
+        if (eventBus == null)
+            return false;
+
+        var retryEvent = new AgentStatusEvent
+        {
+            EventId = Guid.NewGuid(),
+            InteractionId = state.FunctionCall.InteractionId ?? string.Empty,
+            Timestamp = DateTime.UtcNow,
+            EventType = AgentEventType.FunctionCalled,
+            Status = $"Retrying function call: {state.FunctionCall.FunctionName}",
+            Data = new Dictionary<string, object>
+            {
+                { "function_name", state.FunctionCall.FunctionName },
+                { "function_id", state.FunctionCall.FunctionId },
+                { "arguments", state.FunctionCall.Arguments ?? new Dictionary<string, object>() },
+                { "retry", true }
+            }
+        };
+
+        await eventBus.PublishAsync(retryEvent, cancellationToken);
+        return true;
     }
 
     public FunctionCallDetails? GetPendingFunctionCall(string jobId)
@@ -113,6 +223,8 @@ public class FunctionResultService : IFunctionResultService
                 Result = result,
                 Success = true
             };
+            state.TimeoutTimer?.Dispose();
+            state.TimeoutTimer = null;
         }
 
         _logger.LogInformation(
@@ -156,8 +268,9 @@ public class FunctionResultService : IFunctionResultService
     {
         lock (_lock)
         {
-            if (_executionStates.Remove(jobId))
+            if (_executionStates.Remove(jobId, out var state))
             {
+                state.TimeoutTimer?.Dispose();
                 _logger.LogInformation("Cleared function execution state for job {JobId}", jobId);
             }
         }
@@ -169,5 +282,6 @@ public class FunctionResultService : IFunctionResultService
         public FunctionCallDetails FunctionCall { get; set; } = null!;
         public FunctionExecutionResult? ExecutionResult { get; set; }
         public DateTime RegisteredAt { get; set; }
+        public Timer? TimeoutTimer { get; set; }
     }
 }
