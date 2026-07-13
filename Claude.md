@@ -73,11 +73,16 @@ Explain:
 - what could not be verified,
 - why it could not be be verified.
 
+# Implementation
+
+- Always create a feature branch for implementation
+
 # Commit
 
 - Allow commits should follow conventional commits format
 - All solutions should compile and build without any error/warnings.
 - All Unit tests should pass
+- Never commit in the main branch
 
 # Claude Code Workflow
 
