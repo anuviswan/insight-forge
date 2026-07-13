@@ -12,11 +12,16 @@ namespace Insight.WebApi.Controllers;
 public class AgentStatusController : ControllerBase
 {
     private readonly IJobAgentService _jobAgentService;
+    private readonly IProgressMetricsService _progressMetricsService;
     private readonly ILogger<AgentStatusController> _logger;
 
-    public AgentStatusController(IJobAgentService jobAgentService, ILogger<AgentStatusController> logger)
+    public AgentStatusController(
+        IJobAgentService jobAgentService,
+        IProgressMetricsService progressMetricsService,
+        ILogger<AgentStatusController> logger)
     {
         _jobAgentService = jobAgentService;
+        _progressMetricsService = progressMetricsService;
         _logger = logger;
     }
 
@@ -99,17 +104,38 @@ public class AgentStatusController : ControllerBase
     /// Get the current progress of a job
     /// </summary>
     /// <param name="jobId">Job identifier</param>
-    /// <returns>Current job status or 404 if job not found</returns>
+    /// <returns>Detailed progress metrics or 404 if job not found</returns>
     [HttpGet("blog/{jobId}/progress")]
     public IActionResult GetJobProgress(string jobId)
     {
         if (string.IsNullOrWhiteSpace(jobId))
             return BadRequest("jobId is required");
 
-        if (!_jobAgentService.IsJobActive(jobId))
-            return NotFound(new { message = $"Job {jobId} not found" });
+        var metrics = _progressMetricsService.GetProgress(jobId);
+        if (metrics == null)
+            return NotFound(new { message = $"No progress data for job {jobId}" });
 
-        return Ok(new { jobId = jobId, isActive = true });
+        var dto = JobProgressDto.FromDomain(metrics);
+        return Ok(dto);
+    }
+
+    /// <summary>
+    /// Get detailed progress including step history and event log
+    /// </summary>
+    /// <param name="jobId">Job identifier</param>
+    /// <returns>Detailed progress with step history or 404 if job not found</returns>
+    [HttpGet("blog/{jobId}/progress/detailed")]
+    public IActionResult GetDetailedJobProgress(string jobId)
+    {
+        if (string.IsNullOrWhiteSpace(jobId))
+            return BadRequest("jobId is required");
+
+        var progress = _progressMetricsService.GetDetailedProgress(jobId);
+        if (progress == null)
+            return NotFound(new { message = $"No progress data for job {jobId}" });
+
+        var dto = DetailedJobProgressDto.FromDomain(progress);
+        return Ok(dto);
     }
 
     /// <summary>

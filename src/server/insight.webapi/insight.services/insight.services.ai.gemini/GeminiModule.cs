@@ -34,6 +34,12 @@ public class GeminiModule : IModule
         // Register job agent service for managing active streaming jobs
         services.AddSingleton<IJobAgentService, JobAgentService>();
 
+        // Register progress metrics service for tracking job metrics
+        services.AddSingleton<IProgressMetricsService, ProgressMetricsService>();
+
+        // Register progress event subscriber
+        services.AddSingleton<ProgressEventSubscriber>();
+
         // Register GeminiAgent implementing specific interfaces following SRP
         services.AddScoped<GeminiAgent>();
         services.AddScoped<IBlogAgent>(sp => sp.GetRequiredService<GeminiAgent>());
