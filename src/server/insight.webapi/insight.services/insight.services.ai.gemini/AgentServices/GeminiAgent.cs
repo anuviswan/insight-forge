@@ -9,7 +9,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Insight.Services.Ai.Gemini.AgentServices;
 
-public class GeminiAgent(IGeminiApiClient apiClient, [FromKeyedServices("Gemini")] IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto> metadataProvider, ILoggerFactory loggerFactory) : IBlogAgent, IAgentOrchestrator
+public class GeminiAgent(
+    IGeminiApiClient apiClient,
+    [FromKeyedServices("Gemini")] IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto> metadataProvider,
+    ILoggerFactory loggerFactory) : IBlogAgent, IAgentOrchestrator
 {
     private const string AgentName = "Blog Writer Agent";
     private const string AgentId = "blog-writer-agent";
@@ -144,24 +147,35 @@ public class GeminiAgent(IGeminiApiClient apiClient, [FromKeyedServices("Gemini"
         var transformer = new GeminiEventTransformer(transformerLogger);
         var accumulatedContent = new System.Text.StringBuilder();
 
-        await foreach (var geminiEvent in apiClient.StreamAgentInteractionAsync(AgentId, input, cancellationToken))
+        try
         {
-            var events = transformer.Transform(geminiEvent);
-            foreach (var @event in events)
+            await foreach (var geminiEvent in apiClient.StreamAgentInteractionAsync(AgentId, input, cancellationToken))
             {
-                await eventBus.PublishAsync(@event, cancellationToken);
+                var events = transformer.Transform(geminiEvent);
+                foreach (var @event in events)
+                {
+                    await eventBus.PublishAsync(@event, cancellationToken);
 
-                // Accumulate content for final result
-                if (@event.EventType == AgentEventType.StepProgressing && @event.Data?.ContainsKey("accumulated_content") == true)
-                {
-                    accumulatedContent.Clear();
-                    accumulatedContent.Append(@event.Data["accumulated_content"]);
+                    // Accumulate content for final result
+                    if (@event.EventType == AgentEventType.StepProgressing && @event.Data?.ContainsKey("accumulated_content") == true)
+                    {
+                        accumulatedContent.Clear();
+                        accumulatedContent.Append(@event.Data["accumulated_content"]);
+                    }
+                    else if (@event.EventType == AgentEventType.StepCompleted && @event.Data?.ContainsKey("final_content") == true)
+                    {
+                        accumulatedContent.Clear();
+                        accumulatedContent.Append(@event.Data["final_content"]);
+                    }
                 }
-                else if (@event.EventType == AgentEventType.StepCompleted && @event.Data?.ContainsKey("final_content") == true)
-                {
-                    accumulatedContent.Clear();
-                    accumulatedContent.Append(@event.Data["final_content"]);
-                }
+            }
+        }
+        finally
+        {
+            // Clean up event bus resources
+            if (eventBus is EventBusChannels channels)
+            {
+                channels.Complete();
             }
         }
 
