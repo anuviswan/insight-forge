@@ -1,6 +1,8 @@
 using Insight.Services.Interfaces.Ai;
 using Insight.Services.Interfaces.Core;
 using Insight.WebApi.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace Insight.Services.Core.Tests;
@@ -11,6 +13,9 @@ public class BlogServiceTests
     private Mock<IBlogAgent> _mockBlogAgent;
     private Mock<ICitationExtractor> _mockCitationExtractor;
     private Mock<IContentQualityReviewer> _mockQualityReviewer;
+    private Mock<IJobAgentService> _mockJobAgentService;
+    private BlogJobResultStore _resultStore;
+    private ServiceProvider _serviceProvider;
     private BlogService _blogService;
 
     [TestInitialize]
@@ -19,12 +24,25 @@ public class BlogServiceTests
         _mockBlogAgent = new Mock<IBlogAgent>();
         _mockCitationExtractor = new Mock<ICitationExtractor>();
         _mockQualityReviewer = new Mock<IContentQualityReviewer>();
+        _mockJobAgentService = new Mock<IJobAgentService>();
+        _resultStore = new BlogJobResultStore();
+        _serviceProvider = new ServiceCollection().BuildServiceProvider();
 
         _blogService = new BlogService(
             _mockBlogAgent.Object,
             _mockCitationExtractor.Object,
-            _mockQualityReviewer.Object
+            _mockQualityReviewer.Object,
+            _mockJobAgentService.Object,
+            _resultStore,
+            _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
+            Mock.Of<ILogger<BlogService>>()
         );
+    }
+
+    [TestCleanup]
+    public void Cleanup()
+    {
+        _serviceProvider.Dispose();
     }
 
     [TestMethod]

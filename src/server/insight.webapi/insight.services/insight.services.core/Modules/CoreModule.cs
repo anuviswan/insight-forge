@@ -13,6 +13,7 @@ public class CoreModule : IModule
     {
         services.AddScoped<ICitationExtractor, CitationExtractorService>();
         services.AddScoped<IContentQualityReviewer, ContentQualityReviewerService>();
+        services.AddSingleton<IBlogJobResultStore, BlogJobResultStore>();
         services.AddScoped<IBlogService, BlogService>();
     }
 }

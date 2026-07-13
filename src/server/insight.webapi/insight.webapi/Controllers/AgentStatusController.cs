@@ -60,6 +60,18 @@ public class AgentStatusController : ControllerBase
 
         _logger.LogInformation("Client connected to stream for job {JobId}", jobId);
 
+        var eventBus = _jobAgentService.GetEventBus(jobId);
+        if (eventBus == null)
+        {
+            _logger.LogWarning("No active event bus for job {JobId}", jobId);
+
+            // 204 tells EventSource to fail the connection permanently rather than
+            // auto-retry - the job either finished already or never existed, so
+            // retrying against this URL will never succeed.
+            HttpContext.Response.StatusCode = StatusCodes.Status204NoContent;
+            return;
+        }
+
         // Set SSE headers
         HttpContext.Response.ContentType = "text/event-stream";
         HttpContext.Response.Headers["Cache-Control"] = "no-cache";
@@ -67,21 +79,12 @@ public class AgentStatusController : ControllerBase
 
         try
         {
-            var eventBus = _jobAgentService.GetEventBus(jobId);
-            if (eventBus == null)
-            {
-                _logger.LogWarning("No active event bus for job {JobId}", jobId);
-                await SendSseEvent(HttpContext.Response, new
-                {
-                    error = "Job not found or not active",
-                    jobId = jobId
-                }, cancellationToken);
-                return;
-            }
-
-            // Subscribe to events and stream them
+            // Subscribe to events and stream them. Progress metrics are tracked
+            // inline here since this is the sole consumer of the job's event bus.
             await foreach (var @event in eventBus.SubscribeAsync(cancellationToken))
             {
+                _progressMetricsService.TrackEvent(jobId, @event);
+
                 var dto = AgentStatusEventDto.FromDomain(@event);
                 await SendSseEvent(HttpContext.Response, dto, cancellationToken);
             }

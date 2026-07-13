@@ -60,6 +60,30 @@ export interface BlogPost {
   imageUrl: string;
 }
 
+export type BlogJobResultPoll =
+  | { status: 'processing' }
+  | { status: 'error'; error: string }
+  | { status: 'complete'; post: BlogPost };
+
+/** Derive a BlogPost (title, word count, read time) from a raw blog entry response. */
+function toBlogPost(data: { content?: string; Content?: string }, topic: string): BlogPost {
+  const content = data.content || data.Content || '';
+  const lines = content.split('\n');
+  const titleLine = lines.find((line: string) => line.startsWith('#'));
+  const title = titleLine ? titleLine.replace(/^#+\s*/, '').trim() : topic;
+
+  const wordCount = content.split(/\s+/).filter(Boolean).length;
+  const readTime = Math.ceil(wordCount / 200) + 'm';
+
+  return {
+    title,
+    content,
+    wordCount,
+    readTime,
+    imageUrl: ""
+  };
+}
+
 export interface ResearchSummary {
   title: string;
   content: string;
@@ -95,7 +119,7 @@ const mockRecentHistory = [
 ];
 
 // Get API base URL (from environment or default)
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // Centralized API service layer
 export const api = {
@@ -212,27 +236,58 @@ export const api = {
         }
 
         const data = await response.json();
-
-        // Parse the markdown content to extract title and calculate stats
-        const content = data.content || data.Content || '';
-        const lines = content.split('\n');
-        const titleLine = lines.find((line: string) => line.startsWith('#'));
-        const title = titleLine ? titleLine.replace(/^#+\s*/, '').trim() : topic;
-
-        const wordCount = content.split(/\s+/).length;
-        const readTime = Math.ceil(wordCount / 200) + 'm';
-
-        return {
-          title,
-          content,
-          wordCount,
-          readTime,
-          imageUrl: ""
-        };
+        return toBlogPost(data, topic);
       } catch (error) {
         console.error("Blog generation error:", error);
         throw error;
       }
+    },
+
+    /**
+     * Start blog generation as a background job. Returns a jobId that can be
+     * used with useAgentStream() for live progress and with getResult() to
+     * fetch the final post once generation completes.
+     */
+    async startJob(topic: string, audience: string = '', writingStyle: string = ''): Promise<string> {
+      const response = await fetch(`${API_BASE_URL}/blogger/CreateBlogEntryAsync`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          topic: topic.trim(),
+          audience: audience.trim(),
+          writingStyle: writingStyle.trim()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.jobId;
+    },
+
+    /** Poll for the result of a job started via startJob(). */
+    async getResult(jobId: string, topic: string = ''): Promise<BlogJobResultPoll> {
+      const response = await fetch(`${API_BASE_URL}/blogger/result/${jobId}`);
+
+      if (response.status === 202) {
+        return { status: 'processing' };
+      }
+
+      if (response.status === 500) {
+        const data = await response.json();
+        return { status: 'error', error: data.error || 'Blog generation failed' };
+      }
+
+      if (!response.ok) {
+        return { status: 'error', error: `Server error: ${response.statusText}` };
+      }
+
+      const data = await response.json();
+      return { status: 'complete', post: toBlogPost(data, topic) };
     }
   },
 
