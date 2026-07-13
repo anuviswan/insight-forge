@@ -40,6 +40,9 @@ public class GeminiModule : IModule
         // Register progress event subscriber
         services.AddSingleton<ProgressEventSubscriber>();
 
+        // Register function result service for multi-turn workflows
+        services.AddSingleton<IFunctionResultService, FunctionResultService>();
+
         // Register GeminiAgent implementing specific interfaces following SRP
         services.AddScoped<GeminiAgent>();
         services.AddScoped<IBlogAgent>(sp => sp.GetRequiredService<GeminiAgent>());
