@@ -16,6 +16,9 @@ export interface ProgressStep {
   message?: string;
 }
 
+const POLL_INTERVAL_MS = 2000;
+const MAX_POLL_ATTEMPTS = 300; // 10 minutes at 2s intervals
+
 export const useDocumentsStore = defineStore('documents', () => {
   const recentHistory = ref<HistoryItem[]>([]);
   const activePost = ref<BlogPost | null>(null);
@@ -25,6 +28,7 @@ export const useDocumentsStore = defineStore('documents', () => {
   const loading = ref(false);
   const error = ref<string | null>(null);
   const progressSteps = ref<ProgressStep[]>([]);
+  const currentJobId = ref<string | null>(null);
 
   const filteredHistory = computed(() => {
     if (!searchHistoryQuery.value.trim()) return recentHistory.value;
@@ -67,27 +71,13 @@ export const useDocumentsStore = defineStore('documents', () => {
   async function generateBlogPost(topic: string, audience: string = '', writingStyle: string = '') {
     loading.value = true;
     error.value = null;
-    initializeProgress();
+    currentJobId.value = null;
 
     try {
-      // Simulate progress updates while API call is in progress
-      const progressInterval = setInterval(() => {
-        const pending = progressSteps.value.find(s => s.status === 'pending');
-        if (pending) {
-          pending.status = 'in-progress';
-        } else {
-          clearInterval(progressInterval);
-        }
-      }, 2000);
+      const jobId = await api.blogger.startJob(topic, audience, writingStyle);
+      currentJobId.value = jobId;
 
-      const post = await api.blogger.generate(topic, audience, writingStyle);
-      clearInterval(progressInterval);
-
-      // Mark all steps as completed
-      progressSteps.value.forEach(step => {
-        step.status = 'completed';
-      });
-
+      const post = await pollJobResult(jobId, topic);
       activePost.value = post;
 
       // Add to recent history locally
@@ -100,15 +90,28 @@ export const useDocumentsStore = defineStore('documents', () => {
       return post;
     } catch (err: any) {
       error.value = err.message || 'Failed to generate blog post';
-      progressSteps.value.forEach(step => {
-        if (step.status === 'in-progress' || step.status === 'pending') {
-          step.status = 'failed';
-        }
-      });
       throw err;
     } finally {
       loading.value = false;
     }
+  }
+
+  /** Poll the job result endpoint until the background generation job completes or fails. */
+  async function pollJobResult(jobId: string, topic: string) {
+    for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
+      const result = await api.blogger.getResult(jobId, topic);
+
+      if (result.status === 'complete') {
+        return result.post;
+      }
+      if (result.status === 'error') {
+        throw new Error(result.error);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+    }
+
+    throw new Error('Blog generation timed out. Please try again.');
   }
 
   async function generateSummary(urls: string[]) {
@@ -149,6 +152,10 @@ export const useDocumentsStore = defineStore('documents', () => {
     recentHistory.value = recentHistory.value.filter(item => item.id !== id);
   }
 
+  function clearCurrentJob() {
+    currentJobId.value = null;
+  }
+
   return {
     recentHistory,
     activePost,
@@ -158,11 +165,13 @@ export const useDocumentsStore = defineStore('documents', () => {
     loading,
     error,
     progressSteps,
+    currentJobId,
     loadHistory,
     generateBlogPost,
     generateSummary,
     addEmptyDocument,
     deleteHistoryItem,
+    clearCurrentJob,
     initializeProgress,
     updateProgress
   };

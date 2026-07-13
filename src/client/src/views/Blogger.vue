@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 import { marked } from 'marked';
 import { useDocumentsStore } from '../stores/documents';
-import ProgressIndicator from '../components/common/ProgressIndicator.vue';
+import AgentStreamPanel from '../components/common/AgentStreamPanel.vue';
 
 const documentsStore = useDocumentsStore();
 
@@ -49,6 +49,7 @@ function handleDownload() {
 function handleDelete() {
   if (confirm('Are you sure you want to delete this preview?')) {
     documentsStore.activePost = null;
+    documentsStore.clearCurrentJob();
   }
 }
 </script>
@@ -106,8 +107,11 @@ function handleDelete() {
       </form>
     </div>
 
-    <!-- Progress Indicator -->
-    <ProgressIndicator v-if="documentsStore.loading || documentsStore.progressSteps.length > 0" :steps="documentsStore.progressSteps" />
+    <!-- Real-time Agent Streaming Progress: only relevant while a job is in flight.
+         Once the REST poll confirms completion (loading turns false), the
+         authoritative result has already arrived, so drop the live connection
+         instead of leaving a stale "reconnecting" status on screen. -->
+    <AgentStreamPanel :job-id="documentsStore.loading ? documentsStore.currentJobId : null" />
 
     <!-- Active Preview Card -->
     <div v-if="documentsStore.activePost" class="preview-card card animate-fade-in">

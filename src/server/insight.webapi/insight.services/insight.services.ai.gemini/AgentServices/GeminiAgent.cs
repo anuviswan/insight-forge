@@ -147,35 +147,28 @@ public class GeminiAgent(
         var transformer = new GeminiEventTransformer(transformerLogger);
         var accumulatedContent = new System.Text.StringBuilder();
 
-        try
+        // Note: the event bus is a job-scoped resource owned by the caller (via
+        // IJobAgentService). It is intentionally left open here - even if streaming
+        // throws, the caller still needs to publish an Error event and complete the
+        // job afterwards. Completing it here would drop that final event.
+        await foreach (var geminiEvent in apiClient.StreamAgentInteractionAsync(AgentId, input, cancellationToken))
         {
-            await foreach (var geminiEvent in apiClient.StreamAgentInteractionAsync(AgentId, input, cancellationToken))
+            var events = transformer.Transform(geminiEvent);
+            foreach (var @event in events)
             {
-                var events = transformer.Transform(geminiEvent);
-                foreach (var @event in events)
-                {
-                    await eventBus.PublishAsync(@event, cancellationToken);
+                await eventBus.PublishAsync(@event, cancellationToken);
 
-                    // Accumulate content for final result
-                    if (@event.EventType == AgentEventType.StepProgressing && @event.Data?.ContainsKey("accumulated_content") == true)
-                    {
-                        accumulatedContent.Clear();
-                        accumulatedContent.Append(@event.Data["accumulated_content"]);
-                    }
-                    else if (@event.EventType == AgentEventType.StepCompleted && @event.Data?.ContainsKey("final_content") == true)
-                    {
-                        accumulatedContent.Clear();
-                        accumulatedContent.Append(@event.Data["final_content"]);
-                    }
+                // Accumulate content for final result
+                if (@event.EventType == AgentEventType.StepProgressing && @event.Data?.ContainsKey("accumulated_content") == true)
+                {
+                    accumulatedContent.Clear();
+                    accumulatedContent.Append(@event.Data["accumulated_content"]);
                 }
-            }
-        }
-        finally
-        {
-            // Clean up event bus resources
-            if (eventBus is EventBusChannels channels)
-            {
-                channels.Complete();
+                else if (@event.EventType == AgentEventType.StepCompleted && @event.Data?.ContainsKey("final_content") == true)
+                {
+                    accumulatedContent.Clear();
+                    accumulatedContent.Append(@event.Data["final_content"]);
+                }
             }
         }
 
