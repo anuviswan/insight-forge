@@ -14,17 +14,20 @@ public class AgentStatusController : ControllerBase
     private readonly IJobAgentService _jobAgentService;
     private readonly IProgressMetricsService _progressMetricsService;
     private readonly IFunctionResultService _functionResultService;
+    private readonly IStreamingResilienceMetrics _resilienceMetrics;
     private readonly ILogger<AgentStatusController> _logger;
 
     public AgentStatusController(
         IJobAgentService jobAgentService,
         IProgressMetricsService progressMetricsService,
         IFunctionResultService functionResultService,
+        IStreamingResilienceMetrics resilienceMetrics,
         ILogger<AgentStatusController> logger)
     {
         _jobAgentService = jobAgentService;
         _progressMetricsService = progressMetricsService;
         _functionResultService = functionResultService;
+        _resilienceMetrics = resilienceMetrics;
         _logger = logger;
     }
 
@@ -206,6 +209,28 @@ public class AgentStatusController : ControllerBase
     }
 
     /// <summary>
+    /// Manually retry a pending function call that timed out, re-publishing the
+    /// FunctionCalled event so the client can re-attempt execution.
+    /// </summary>
+    /// <param name="jobId">Job identifier</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Retry status</returns>
+    [HttpPost("blog/{jobId}/function-call/retry")]
+    public async Task<IActionResult> RetryFunctionCall(string jobId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(jobId))
+            return BadRequest(new { error = "jobId is required" });
+
+        var retried = await _functionResultService.RetryFunctionCallAsync(jobId, cancellationToken);
+        if (!retried)
+        {
+            return NotFound(new { message = "No pending function call to retry for this job" });
+        }
+
+        return Ok(new { message = "Function call retry triggered", jobId });
+    }
+
+    /// <summary>
     /// Get pending function call for a job (check if stream is paused)
     /// </summary>
     /// <param name="jobId">Job identifier</param>
@@ -227,6 +252,18 @@ public class AgentStatusController : ControllerBase
             arguments = pending.Arguments,
             timestamp = pending.Timestamp
         });
+    }
+
+    /// <summary>
+    /// Get streaming resilience metrics: error rates by type, retry success rate,
+    /// and current event queue depth for each active job.
+    /// </summary>
+    /// <returns>Resilience metrics snapshot</returns>
+    [HttpGet("metrics")]
+    public IActionResult GetResilienceMetrics()
+    {
+        var snapshot = _resilienceMetrics.GetSnapshot();
+        return Ok(snapshot);
     }
 
     /// <summary>

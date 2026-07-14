@@ -19,6 +19,14 @@ export interface ProgressStep {
 const POLL_INTERVAL_MS = 2000;
 const MAX_POLL_ATTEMPTS = 300; // 10 minutes at 2s intervals
 
+/** Thrown internally when the user cancels generation; not a real error. */
+class GenerationCancelledError extends Error {
+  constructor() {
+    super('Generation cancelled');
+    this.name = 'GenerationCancelledError';
+  }
+}
+
 export const useDocumentsStore = defineStore('documents', () => {
   const recentHistory = ref<HistoryItem[]>([]);
   const activePost = ref<BlogPost | null>(null);
@@ -29,6 +37,7 @@ export const useDocumentsStore = defineStore('documents', () => {
   const error = ref<string | null>(null);
   const progressSteps = ref<ProgressStep[]>([]);
   const currentJobId = ref<string | null>(null);
+  const cancelRequested = ref(false);
 
   const filteredHistory = computed(() => {
     if (!searchHistoryQuery.value.trim()) return recentHistory.value;
@@ -72,6 +81,7 @@ export const useDocumentsStore = defineStore('documents', () => {
     loading.value = true;
     error.value = null;
     currentJobId.value = null;
+    cancelRequested.value = false;
 
     try {
       const jobId = await api.blogger.startJob(topic, audience, writingStyle);
@@ -89,6 +99,9 @@ export const useDocumentsStore = defineStore('documents', () => {
       });
       return post;
     } catch (err: any) {
+      if (err instanceof GenerationCancelledError) {
+        return; // user-initiated cancellation, not a failure - don't surface an error
+      }
       error.value = err.message || 'Failed to generate blog post';
       throw err;
     } finally {
@@ -96,9 +109,21 @@ export const useDocumentsStore = defineStore('documents', () => {
     }
   }
 
-  /** Poll the job result endpoint until the background generation job completes or fails. */
+  /** Abandon an in-flight generation: stops polling and disconnects the live stream. */
+  function cancelGeneration() {
+    cancelRequested.value = true;
+    currentJobId.value = null;
+    loading.value = false;
+    error.value = null;
+  }
+
+  /** Poll the job result endpoint until the background generation job completes, fails, or is cancelled. */
   async function pollJobResult(jobId: string, topic: string) {
     for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
+      if (cancelRequested.value) {
+        throw new GenerationCancelledError();
+      }
+
       const result = await api.blogger.getResult(jobId, topic);
 
       if (result.status === 'complete') {
@@ -172,6 +197,7 @@ export const useDocumentsStore = defineStore('documents', () => {
     addEmptyDocument,
     deleteHistoryItem,
     clearCurrentJob,
+    cancelGeneration,
     initializeProgress,
     updateProgress
   };

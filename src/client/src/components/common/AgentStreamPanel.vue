@@ -13,6 +13,10 @@ interface Props {
 
 const props = defineProps<Props>();
 
+const emit = defineEmits<{
+  cancel: [];
+}>();
+
 const jobIdRef = toRef(props, 'jobId');
 const { connectionState, events, latestStatus, latestProgress, latestError, retry } = useAgentStream(jobIdRef);
 </script>
@@ -25,7 +29,7 @@ const { connectionState, events, latestStatus, latestProgress, latestError, retr
 
     <ContentMetrics :progress="latestProgress" />
 
-    <ErrorDisplay v-if="latestError" :error="latestError" @retry="retry" />
+    <ErrorDisplay v-if="latestError" :error="latestError" @retry="retry" @cancel="emit('cancel')" />
 
     <EventLog :events="events" />
   </div>

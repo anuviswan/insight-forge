@@ -36,4 +36,6 @@ public class EventBusChannels : IEventBus
     {
         _channel.Writer.TryComplete();
     }
+
+    public int? QueueDepth => _channel.Reader.CanCount ? _channel.Reader.Count : null;
 }

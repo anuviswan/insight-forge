@@ -1,10 +1,15 @@
 using Insight.Services.Ai.Gemini.Interfaces;
+using Insight.Services.Ai.Gemini.Options;
+using Insight.Services.Ai.Gemini.Resilience;
 using Insight.Services.Ai.Gemini.Streaming;
 using Insight.Services.Ai.Gemini.Streaming.Types;
 using Insight.Services.Ai.Gemini.Types;
+using Insight.Services.Interfaces.Ai;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
+using System.Runtime.CompilerServices;
 
 namespace Insight.Services.Ai.Gemini.AgentServices;
 
@@ -13,13 +18,26 @@ public class GeminiApiHttpClient : IGeminiApiClient
     private readonly HttpClient _http;
     private readonly ILogger<GeminiApiHttpClient> _logger;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly IGeminiRetryPolicy _retryPolicy;
+    private readonly IStreamingResilienceMetrics _metrics;
+    private readonly StreamingErrorPolicyOptions _streamingOptions;
     private const string BaseAgentModel = "antigravity-preview-05-2026";
 
-    public GeminiApiHttpClient(HttpClient http, IConfiguration config, ILogger<GeminiApiHttpClient> logger, ILoggerFactory loggerFactory)
+    public GeminiApiHttpClient(
+        HttpClient http,
+        IConfiguration config,
+        ILogger<GeminiApiHttpClient> logger,
+        ILoggerFactory loggerFactory,
+        IGeminiRetryPolicy retryPolicy,
+        IStreamingResilienceMetrics metrics,
+        IOptions<StreamingErrorPolicyOptions> streamingOptions)
     {
         _http = http;
         _logger = logger;
         _loggerFactory = loggerFactory;
+        _retryPolicy = retryPolicy;
+        _metrics = metrics;
+        _streamingOptions = streamingOptions.Value;
 
         var apiKey = config["GeminiAgent:ApiKey"] ?? config["Antigravity:ApiKey"];
         if (!string.IsNullOrWhiteSpace(apiKey))
@@ -141,26 +159,32 @@ public class GeminiApiHttpClient : IGeminiApiClient
         Console.WriteLine($"\nEnvironment Sources: {environmentSources.Count}");
         Console.WriteLine($"=========================================\n");
 
-        HttpResponseMessage resp;
-        try
-        {
-            resp = await _http.PostAsJsonAsync("agents", payload, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to create managed agent via Gemini API");
-            throw;
-        }
+        var correlationId = Guid.NewGuid().ToString("N");
+        using var scope = _logger.BeginScope("CorrelationId:{CorrelationId} AgentId:{AgentId}", correlationId, agentId);
 
-        if (!resp.IsSuccessStatusCode)
+        return await _retryPolicy.ExecuteAsync(async () =>
         {
-            var body = await resp.Content.ReadAsStringAsync(cancellationToken);
-            _logger.LogWarning("Gemini API returned {Status}: {Body}", resp.StatusCode, body);
-            throw new HttpRequestException($"Gemini API returned {resp.StatusCode}");
-        }
+            HttpResponseMessage resp;
+            try
+            {
+                resp = await _http.PostAsJsonAsync("agents", payload, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create managed agent via Gemini API");
+                throw;
+            }
 
-        var response = await resp.Content.ReadFromJsonAsync<GeminiAgentResponse>(cancellationToken: cancellationToken);
-        return response?.Id ?? agentId;
+            if (!resp.IsSuccessStatusCode)
+            {
+                var body = await resp.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogWarning("Gemini API returned {Status}: {Body}", resp.StatusCode, body);
+                throw new HttpRequestException($"Gemini API returned {resp.StatusCode}", inner: null, statusCode: resp.StatusCode);
+            }
+
+            var response = await resp.Content.ReadFromJsonAsync<GeminiAgentResponse>(cancellationToken: cancellationToken);
+            return response?.Id ?? agentId;
+        }, "CreateManagedAgent", cancellationToken);
     }
 
     public async Task<string?> RunAgentInteractionAsync(string agentId, string input, CancellationToken cancellationToken = default)
@@ -171,49 +195,125 @@ public class GeminiApiHttpClient : IGeminiApiClient
             input = input
         };
 
-        HttpResponseMessage resp;
-        try
-        {
-            resp = await _http.PostAsJsonAsync("interactions", payload, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to run agent interaction");
-            throw;
-        }
+        var correlationId = Guid.NewGuid().ToString("N");
+        using var scope = _logger.BeginScope("CorrelationId:{CorrelationId} AgentId:{AgentId}", correlationId, agentId);
 
-        if (!resp.IsSuccessStatusCode)
+        return await _retryPolicy.ExecuteAsync(async () =>
         {
-            var body = await resp.Content.ReadAsStringAsync(cancellationToken);
-            _logger.LogWarning("Gemini API returned {Status}: {Body}", resp.StatusCode, body);
-            throw new HttpRequestException($"Gemini API returned {resp.StatusCode}");
-        }
+            HttpResponseMessage resp;
+            try
+            {
+                resp = await _http.PostAsJsonAsync("interactions", payload, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to run agent interaction");
+                throw;
+            }
 
-        var response = await resp.Content.ReadFromJsonAsync<GeminiInteractionResponse>(cancellationToken: cancellationToken);
+            if (!resp.IsSuccessStatusCode)
+            {
+                var body = await resp.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogWarning("Gemini API returned {Status}: {Body}", resp.StatusCode, body);
+                throw new HttpRequestException($"Gemini API returned {resp.StatusCode}", inner: null, statusCode: resp.StatusCode);
+            }
 
-        if (response?.Steps == null || response.Steps.Count == 0)
+            var response = await resp.Content.ReadFromJsonAsync<GeminiInteractionResponse>(cancellationToken: cancellationToken);
+
+            if (response?.Steps == null || response.Steps.Count == 0)
+                return null;
+
+            // Extract output from model_output step (the final step with actual output)
+            var modelOutputStep = response.Steps.LastOrDefault(s => s.Type == "model_output");
+            if (modelOutputStep?.Content != null && modelOutputStep.Content.Count > 0)
+            {
+                return modelOutputStep.Content
+                    .Where(c => c.Type == "text" && !string.IsNullOrEmpty(c.Text))
+                    .Select(c => c.Text)
+                    .FirstOrDefault();
+            }
+
             return null;
-
-        // Extract output from model_output step (the final step with actual output)
-        var modelOutputStep = response.Steps.LastOrDefault(s => s.Type == "model_output");
-        if (modelOutputStep?.Content != null && modelOutputStep.Content.Count > 0)
-        {
-            return modelOutputStep.Content
-                .Where(c => c.Type == "text" && !string.IsNullOrEmpty(c.Text))
-                .Select(c => c.Text)
-                .FirstOrDefault();
-        }
-
-        return null;
+        }, "RunAgentInteraction", cancellationToken);
     }
 
-    public IAsyncEnumerable<GeminiStreamEvent> StreamAgentInteractionAsync(string agentId, string input, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Streams agent interaction events. On a transient interruption mid-stream, this
+    /// performs a partial retry: it resumes from the last interaction id seen instead
+    /// of restarting the interaction from scratch, up to <see cref="StreamingErrorPolicyOptions.MaxRetries"/>
+    /// attempts, bounded overall by <see cref="StreamingErrorPolicyOptions.StreamTimeout"/>.
+    /// </summary>
+    public async IAsyncEnumerable<GeminiStreamEvent> StreamAgentInteractionAsync(
+        string agentId,
+        string input,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(agentId, nameof(agentId));
         ArgumentException.ThrowIfNullOrWhiteSpace(input, nameof(input));
 
         var wrapperLogger = _loggerFactory.CreateLogger<GeminiStreamWrapper>();
         var wrapper = new GeminiStreamWrapper(_http, wrapperLogger);
-        return wrapper.StreamAsync(agentId, input, cancellationToken);
+
+        var correlationId = Guid.NewGuid().ToString("N");
+        using var scope = _logger.BeginScope("CorrelationId:{CorrelationId} AgentId:{AgentId}", correlationId, agentId);
+
+        using var timeoutCts = new CancellationTokenSource(_streamingOptions.StreamTimeout);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+        var linkedToken = linkedCts.Token;
+
+        string? lastInteractionId = null;
+        var attempt = 0;
+        var delay = _streamingOptions.InitialRetryDelay;
+
+        while (true)
+        {
+            var enumerator = wrapper.StreamAsync(agentId, input, lastInteractionId, linkedToken).GetAsyncEnumerator(linkedToken);
+            var retryDelay = TimeSpan.Zero;
+
+            try
+            {
+                while (true)
+                {
+                    bool hasNext;
+                    try
+                    {
+                        hasNext = await enumerator.MoveNextAsync();
+                    }
+                    catch (Exception ex) when (attempt < _streamingOptions.MaxRetries && TransientErrorClassifier.IsRetryable(ex, cancellationToken))
+                    {
+                        attempt++;
+                        _metrics.RecordError("StreamAgentInteraction", TransientErrorClassifier.Classify(ex));
+                        _metrics.RecordRetryAttempt("StreamAgentInteraction");
+                        _logger.LogWarning(
+                            ex,
+                            "Stream interrupted (attempt {Attempt}/{MaxRetries}), resuming interaction {InteractionId} in {Delay}",
+                            attempt, _streamingOptions.MaxRetries, lastInteractionId ?? "(new)", delay);
+
+                        retryDelay = delay;
+                        delay = TimeSpan.FromMilliseconds(delay.TotalMilliseconds * _streamingOptions.RetryBackoffMultiplier);
+                        break;
+                    }
+
+                    if (!hasNext)
+                    {
+                        if (attempt > 0)
+                            _metrics.RecordRetrySuccess("StreamAgentInteraction");
+                        yield break;
+                    }
+
+                    var current = enumerator.Current;
+                    if (!string.IsNullOrWhiteSpace(current.Interaction?.Id))
+                        lastInteractionId = current.Interaction.Id;
+
+                    yield return current;
+                }
+            }
+            finally
+            {
+                await enumerator.DisposeAsync();
+            }
+
+            await Task.Delay(retryDelay, linkedToken).ConfigureAwait(false);
+        }
     }
 }

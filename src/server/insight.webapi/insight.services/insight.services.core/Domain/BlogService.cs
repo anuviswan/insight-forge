@@ -44,6 +44,9 @@ public class BlogService(
 
     private async Task RunJobAsync(string jobId, string topic, string audience, string writingStyle, IEventBus eventBus)
     {
+        // Correlation scope: flows to every logger invoked while this job runs (Gemini
+        // API client, stream wrapper, etc.) so all log lines for a job can be traced together.
+        using var correlationScope = logger.BeginScope("JobId:{JobId}", jobId);
         using var scope = scopeFactory.CreateScope();
         var scopedBlogAgent = scope.ServiceProvider.GetRequiredService<IBlogAgent>();
         var scopedCitationExtractor = scope.ServiceProvider.GetRequiredService<ICitationExtractor>();

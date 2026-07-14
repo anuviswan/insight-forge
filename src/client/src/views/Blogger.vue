@@ -52,6 +52,10 @@ function handleDelete() {
     documentsStore.clearCurrentJob();
   }
 }
+
+function handleCancelGeneration() {
+  documentsStore.cancelGeneration();
+}
 </script>
 
 <template>
@@ -111,7 +115,10 @@ function handleDelete() {
          Once the REST poll confirms completion (loading turns false), the
          authoritative result has already arrived, so drop the live connection
          instead of leaving a stale "reconnecting" status on screen. -->
-    <AgentStreamPanel :job-id="documentsStore.loading ? documentsStore.currentJobId : null" />
+    <AgentStreamPanel
+      :job-id="documentsStore.loading ? documentsStore.currentJobId : null"
+      @cancel="handleCancelGeneration"
+    />
 
     <!-- Active Preview Card -->
     <div v-if="documentsStore.activePost" class="preview-card card animate-fade-in">

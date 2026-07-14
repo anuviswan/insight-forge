@@ -1,6 +1,7 @@
 ﻿using Insight.Services.Ai.Gemini.AgentServices;
 using Insight.Services.Ai.Gemini.Interfaces;
 using Insight.Services.Ai.Gemini.Options;
+using Insight.Services.Ai.Gemini.Resilience;
 using Insight.Services.Ai.Gemini.Types;
 using Insight.Services.Interfaces.Ai;
 using Insight.Services.Interfaces.Core;
@@ -27,6 +28,11 @@ public class GeminiModule : IModule
 
         // Bind options from configuration (appsettings.json)
         services.Configure<GeminiAgentOptions>(configuration.GetSection("GeminiAgents"));
+        services.Configure<StreamingErrorPolicyOptions>(configuration.GetSection("StreamingErrorPolicy"));
+
+        // Register resilience services: error/retry metrics and the retry policy that reports to them
+        services.AddSingleton<IStreamingResilienceMetrics, StreamingResilienceMetricsService>();
+        services.AddSingleton<IGeminiRetryPolicy, GeminiRetryPolicy>();
 
         // Register metadata provider. Use YAML as single source of truth for agent definitions.
         services.AddKeyedScoped<IAgentMetadataProvider<AgentDefinitionDto, SkillDto, WorkflowDto>, YamlAgentMetadataProvider>(ModuleName);
