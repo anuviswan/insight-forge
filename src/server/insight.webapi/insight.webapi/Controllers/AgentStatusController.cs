@@ -12,18 +12,15 @@ namespace Insight.WebApi.Controllers;
 public class AgentStatusController : ControllerBase
 {
     private readonly IJobAgentService _jobAgentService;
-    private readonly IProgressMetricsService _progressMetricsService;
     private readonly IStreamingResilienceMetrics _resilienceMetrics;
     private readonly ILogger<AgentStatusController> _logger;
 
     public AgentStatusController(
         IJobAgentService jobAgentService,
-        IProgressMetricsService progressMetricsService,
         IStreamingResilienceMetrics resilienceMetrics,
         ILogger<AgentStatusController> logger)
     {
         _jobAgentService = jobAgentService;
-        _progressMetricsService = progressMetricsService;
         _resilienceMetrics = resilienceMetrics;
         _logger = logger;
     }
@@ -79,12 +76,9 @@ public class AgentStatusController : ControllerBase
 
         try
         {
-            // Subscribe to events and stream them. Progress metrics are tracked
-            // inline here since this is the sole consumer of the job's event bus.
+            // Subscribe to events and stream them straight through to the client.
             await foreach (var @event in eventBus.SubscribeAsync(cancellationToken))
             {
-                _progressMetricsService.TrackEvent(jobId, @event);
-
                 var dto = AgentStatusEventDto.FromDomain(@event);
                 await SendSseEvent(HttpContext.Response, dto, cancellationToken);
             }
@@ -104,44 +98,6 @@ public class AgentStatusController : ControllerBase
                 jobId = jobId
             }, cancellationToken);
         }
-    }
-
-    /// <summary>
-    /// Get the current progress of a job
-    /// </summary>
-    /// <param name="jobId">Job identifier</param>
-    /// <returns>Detailed progress metrics or 404 if job not found</returns>
-    [HttpGet("blog/{jobId}/progress")]
-    public IActionResult GetJobProgress(string jobId)
-    {
-        if (string.IsNullOrWhiteSpace(jobId))
-            return BadRequest("jobId is required");
-
-        var metrics = _progressMetricsService.GetProgress(jobId);
-        if (metrics == null)
-            return NotFound(new { message = $"No progress data for job {jobId}" });
-
-        var dto = JobProgressDto.FromDomain(metrics);
-        return Ok(dto);
-    }
-
-    /// <summary>
-    /// Get detailed progress including step history and event log
-    /// </summary>
-    /// <param name="jobId">Job identifier</param>
-    /// <returns>Detailed progress with step history or 404 if job not found</returns>
-    [HttpGet("blog/{jobId}/progress/detailed")]
-    public IActionResult GetDetailedJobProgress(string jobId)
-    {
-        if (string.IsNullOrWhiteSpace(jobId))
-            return BadRequest("jobId is required");
-
-        var progress = _progressMetricsService.GetDetailedProgress(jobId);
-        if (progress == null)
-            return NotFound(new { message = $"No progress data for job {jobId}" });
-
-        var dto = DetailedJobProgressDto.FromDomain(progress);
-        return Ok(dto);
     }
 
     /// <summary>
