@@ -67,9 +67,12 @@ public class GeminiStreamWrapper
         using var contentStream = await resp.Content.ReadAsStreamAsync(cancellationToken);
         using var reader = new StreamReader(contentStream);
 
-        string? line;
-        while ((line = await reader.ReadLineAsync(cancellationToken)) != null)
+        while (!cancellationToken.IsCancellationRequested)
         {
+            var line = await ReadLineOrNullIfCancelledAsync(reader, cancellationToken);
+            if (line == null)
+                yield break;
+
             if (string.IsNullOrWhiteSpace(line))
                 continue;
 
@@ -89,6 +92,23 @@ public class GeminiStreamWrapper
 
             if (@event != null)
                 yield return @event;
+        }
+    }
+
+    /// <summary>
+    /// Reads the next line, treating cancellation as end-of-stream instead of letting
+    /// the enumerator throw, so callers can simply stop consuming an <c>await foreach</c>
+    /// by cancelling the token.
+    /// </summary>
+    private static async Task<string?> ReadLineOrNullIfCancelledAsync(StreamReader reader, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await reader.ReadLineAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
         }
     }
 }
