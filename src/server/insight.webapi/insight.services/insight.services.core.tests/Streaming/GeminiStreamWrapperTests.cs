@@ -184,25 +184,7 @@ public class GeminiStreamWrapperTests
     public async Task StreamAsync_WithComplexEvent_ShouldParseCorrectly()
     {
         var streamContent = """
-            {
-              "event_type": "step.delta",
-              "step": {
-                "id": "step-1",
-                "index": 0,
-                "type": "model_output",
-                "content": [
-                  {"type": "text", "text": "Hello "},
-                  {"type": "text", "text": "World"}
-                ],
-                "function_calls": [
-                  {
-                    "name": "google_search",
-                    "id": "call-123",
-                    "args": {"query": "test"}
-                  }
-                ]
-              }
-            }
+            {"event_type": "step.delta", "step": {"id": "step-1", "index": 0, "type": "model_output", "content": [{"type": "text", "text": "Hello "}, {"type": "text", "text": "World"}], "function_calls": [{"name": "google_search", "id": "call-123", "args": {"query": "test"}}]}}
             """;
 
         var handler = new MockHttpMessageHandler(streamContent);
