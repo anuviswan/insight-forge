@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="insight.services/insight.services.ai.gemini/insight.services.ai.gemini.csproj" Id="078b2462-426c-4a40-adec-373e5a47da6f" />
+  <Project Path="insight.services/insight.services.core.tests/insight.services.core.tests.csproj" />
   <Project Path="insight.services/insight.services.core/insight.services.core.csproj" Id="c4212afe-3de1-4fa7-b071-8a73534502ba" />
   <Project Path="insight.services/insight.services.interfaces/insight.services.interfaces.csproj" Id="310d5ab4-e1d5-4207-833c-b511008e4aea" />
   <Project Path="insight.webapi/insight.webapi.csproj" />
