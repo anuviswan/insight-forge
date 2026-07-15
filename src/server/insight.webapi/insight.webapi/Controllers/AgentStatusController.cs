@@ -13,20 +13,17 @@ public class AgentStatusController : ControllerBase
 {
     private readonly IJobAgentService _jobAgentService;
     private readonly IProgressMetricsService _progressMetricsService;
-    private readonly IFunctionResultService _functionResultService;
     private readonly IStreamingResilienceMetrics _resilienceMetrics;
     private readonly ILogger<AgentStatusController> _logger;
 
     public AgentStatusController(
         IJobAgentService jobAgentService,
         IProgressMetricsService progressMetricsService,
-        IFunctionResultService functionResultService,
         IStreamingResilienceMetrics resilienceMetrics,
         ILogger<AgentStatusController> logger)
     {
         _jobAgentService = jobAgentService;
         _progressMetricsService = progressMetricsService;
-        _functionResultService = functionResultService;
         _resilienceMetrics = resilienceMetrics;
         _logger = logger;
     }
@@ -156,102 +153,6 @@ public class AgentStatusController : ControllerBase
     {
         var jobs = _jobAgentService.GetActiveJobs();
         return Ok(new { jobs = jobs.ToList(), count = jobs.Count() });
-    }
-
-    /// <summary>
-    /// Submit function execution result to resume streaming
-    /// </summary>
-    /// <param name="jobId">Job identifier</param>
-    /// <param name="request">Function result with ID and execution output</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Submission status</returns>
-    [HttpPost("blog/{jobId}/function-result")]
-    public async Task<IActionResult> SubmitFunctionResult(
-        string jobId,
-        [FromBody] FunctionResultRequest request,
-        CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(jobId))
-            return BadRequest(new { error = "jobId is required" });
-
-        if (request == null || string.IsNullOrWhiteSpace(request.FunctionId))
-            return BadRequest(new { error = "FunctionId is required" });
-
-        if (string.IsNullOrWhiteSpace(request.Result) && string.IsNullOrWhiteSpace(request.Error))
-            return BadRequest(new { error = "Either Result or Error must be provided" });
-
-        _logger.LogInformation(
-            "Received function result for job {JobId}, functionId {FunctionId}",
-            jobId, request.FunctionId);
-
-        var result = await _functionResultService.SubmitFunctionResultAsync(
-            jobId,
-            request.FunctionId,
-            request.Result ?? request.Error ?? string.Empty,
-            cancellationToken);
-
-        if (!result)
-        {
-            return BadRequest(new FunctionResultResponse
-            {
-                Success = false,
-                Message = "Function result could not be processed. Job or function ID may not match.",
-                JobId = jobId
-            });
-        }
-
-        return Ok(new FunctionResultResponse
-        {
-            Success = true,
-            Message = "Function result accepted, streaming resumed",
-            JobId = jobId
-        });
-    }
-
-    /// <summary>
-    /// Manually retry a pending function call that timed out, re-publishing the
-    /// FunctionCalled event so the client can re-attempt execution.
-    /// </summary>
-    /// <param name="jobId">Job identifier</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Retry status</returns>
-    [HttpPost("blog/{jobId}/function-call/retry")]
-    public async Task<IActionResult> RetryFunctionCall(string jobId, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(jobId))
-            return BadRequest(new { error = "jobId is required" });
-
-        var retried = await _functionResultService.RetryFunctionCallAsync(jobId, cancellationToken);
-        if (!retried)
-        {
-            return NotFound(new { message = "No pending function call to retry for this job" });
-        }
-
-        return Ok(new { message = "Function call retry triggered", jobId });
-    }
-
-    /// <summary>
-    /// Get pending function call for a job (check if stream is paused)
-    /// </summary>
-    /// <param name="jobId">Job identifier</param>
-    /// <returns>Pending function call details or 404 if none pending</returns>
-    [HttpGet("blog/{jobId}/function-call/pending")]
-    public IActionResult GetPendingFunctionCall(string jobId)
-    {
-        if (string.IsNullOrWhiteSpace(jobId))
-            return BadRequest("jobId is required");
-
-        var pending = _functionResultService.GetPendingFunctionCall(jobId);
-        if (pending == null)
-            return NotFound(new { message = "No pending function call for this job" });
-
-        return Ok(new
-        {
-            functionId = pending.FunctionId,
-            functionName = pending.FunctionName,
-            arguments = pending.Arguments,
-            timestamp = pending.Timestamp
-        });
     }
 
     /// <summary>

@@ -21,11 +21,6 @@ public class StreamingErrorPolicyOptions
     public double RetryBackoffMultiplier { get; set; } = 2.0;
 
     /// <summary>
-    /// How long a function call may remain unexecuted before it is considered timed out.
-    /// </summary>
-    public TimeSpan FunctionExecutionTimeout { get; set; } = TimeSpan.FromSeconds(30);
-
-    /// <summary>
     /// Overall wall-clock budget for a single streamed interaction, including all retries.
     /// </summary>
     public TimeSpan StreamTimeout { get; set; } = TimeSpan.FromMinutes(5);
