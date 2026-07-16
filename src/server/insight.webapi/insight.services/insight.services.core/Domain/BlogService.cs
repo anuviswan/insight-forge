@@ -57,6 +57,30 @@ public class BlogService(
             var blogEntry = await scopedBlogAgent.CreateBlogPostStreamedAsync(topic, audience, writingStyle, eventBus, CancellationToken.None)
                 .ConfigureAwait(false);
 
+            // A stream that completes without ever throwing but produces no text is not
+            // a successful generation - without this guard it would be stored via
+            // SetResult and reported to the client as a 200 OK success.
+            if (string.IsNullOrWhiteSpace(blogEntry.Content))
+            {
+                const string errorMessage = "Blog generation completed but produced no content";
+                logger.LogWarning("Blog generation job {JobId} completed with empty content", jobId);
+                resultStore.SetError(jobId, errorMessage);
+
+                await eventBus.PublishAsync(new AgentStatusEvent
+                {
+                    EventType = AgentEventType.Error,
+                    Status = "Blog generation failed",
+                    Error = new ErrorData
+                    {
+                        ErrorType = "EmptyContent",
+                        Message = errorMessage,
+                        Retryable = true
+                    }
+                }, CancellationToken.None).ConfigureAwait(false);
+
+                return;
+            }
+
             blogEntry.Citations = scopedCitationExtractor.ExtractCitations(blogEntry.Content).Citations;
             blogEntry.References = scopedCitationExtractor.ExtractCitations(blogEntry.Content).References;
             blogEntry.QualityAssessment = scopedQualityReviewer.ReviewContent(blogEntry.Content);

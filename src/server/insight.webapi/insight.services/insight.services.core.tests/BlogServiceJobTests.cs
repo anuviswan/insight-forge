@@ -153,4 +153,34 @@ public class BlogServiceJobTests
     {
         Assert.IsNull(_blogService.GetJobResult("nonexistent-job"));
     }
+
+    [TestMethod]
+    public async Task StartBlogEntryJobAsync_WhenGeneratedContentIsEmpty_StoresErrorAndPublishesErrorEvent()
+    {
+        var completionSignal = new TaskCompletionSource();
+
+        _mockBlogAgent
+            .Setup(x => x.CreateBlogPostStreamedAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IEventBus>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BlogEntry { Content = string.Empty });
+        _mockJobAgentService
+            .Setup(x => x.CompleteJob(It.IsAny<string>()))
+            .Callback(() => completionSignal.TrySetResult());
+
+        var jobId = await _blogService.StartBlogEntryJobAsync("Test Topic", "audience", "style");
+
+        var finished = await Task.WhenAny(completionSignal.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+        Assert.AreSame(completionSignal.Task, finished, "Background job did not complete in time");
+
+        var result = _blogService.GetJobResult(jobId);
+        Assert.IsNotNull(result);
+        Assert.IsFalse(result.IsSuccess, "A job with empty generated content should not be reported as successful");
+        Assert.IsNotNull(result.Error);
+
+        _mockEventBus.Verify(
+            x => x.PublishAsync(It.Is<AgentStatusEvent>(e => e.EventType == AgentEventType.Error), It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // Quality review should never run against empty content that's already being treated as a failure.
+        _mockQualityReviewer.Verify(x => x.ReviewContent(It.IsAny<string>()), Times.Never);
+    }
 }
