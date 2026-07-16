@@ -158,16 +158,19 @@ public class GeminiAgent(
             {
                 await eventBus.PublishAsync(@event, cancellationToken);
 
-                // Accumulate content for final result
-                if (@event.EventType == AgentEventType.StepProgressing && @event.Data?.ContainsKey("accumulated_content") == true)
+                // Each StepCompleted event carries only the text produced by that
+                // single step (the transformer resets its accumulator per step), so
+                // final content must be summed across model_output steps rather than
+                // overwritten - a later non-text step (e.g. a tool call) would
+                // otherwise wipe out text already collected from an earlier step.
+                if (@event.EventType == AgentEventType.StepCompleted
+                    && @event.Data?.TryGetValue("step_type", out var stepType) == true
+                    && string.Equals(stepType as string, "model_output", StringComparison.Ordinal)
+                    && @event.Data.TryGetValue("final_content", out var finalContent)
+                    && finalContent is string stepContent
+                    && !string.IsNullOrEmpty(stepContent))
                 {
-                    accumulatedContent.Clear();
-                    accumulatedContent.Append(@event.Data["accumulated_content"]);
-                }
-                else if (@event.EventType == AgentEventType.StepCompleted && @event.Data?.ContainsKey("final_content") == true)
-                {
-                    accumulatedContent.Clear();
-                    accumulatedContent.Append(@event.Data["final_content"]);
+                    accumulatedContent.Append(stepContent);
                 }
             }
         }
