@@ -11,6 +11,8 @@ namespace Insight.WebApi.Controllers;
 [Route("api/agent")]
 public class AgentStatusController : ControllerBase
 {
+    private static readonly JsonSerializerOptions SseJsonOptions = new(JsonSerializerDefaults.Web);
+
     private readonly IJobAgentService _jobAgentService;
     private readonly IStreamingResilienceMetrics _resilienceMetrics;
     private readonly ILogger<AgentStatusController> _logger;
@@ -74,6 +76,12 @@ public class AgentStatusController : ControllerBase
         HttpContext.Response.Headers["Cache-Control"] = "no-cache";
         HttpContext.Response.Headers["Connection"] = "keep-alive";
 
+        // Flush headers immediately instead of waiting for the first event. Without this,
+        // Kestrel buffers the response until the first write, so the client's EventSource
+        // never fires 'open' - and stays stuck showing "Connecting..." - until the agent
+        // produces its first event, which can be delayed by tens of seconds or more.
+        await HttpContext.Response.StartAsync(cancellationToken);
+
         try
         {
             // Subscribe to events and stream them straight through to the client.
@@ -128,7 +136,7 @@ public class AgentStatusController : ControllerBase
     /// </summary>
     private static async Task SendSseEvent(HttpResponse response, object data, CancellationToken cancellationToken)
     {
-        var json = JsonSerializer.Serialize(data);
+        var json = JsonSerializer.Serialize(data, SseJsonOptions);
         await response.WriteAsync($"data: {json}\n\n", cancellationToken);
         await response.Body.FlushAsync(cancellationToken);
     }

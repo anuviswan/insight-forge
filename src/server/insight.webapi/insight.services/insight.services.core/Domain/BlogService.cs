@@ -54,8 +54,43 @@ public class BlogService(
 
         try
         {
+            // Published before the agent call so the client sees an immediate status
+            // update. The Gemini stream itself can take tens of seconds to produce its
+            // first recognizable event (or, for some agent responses, none at all until
+            // the very end), which would otherwise leave the UI showing nothing.
+            await eventBus.PublishAsync(new AgentStatusEvent
+            {
+                EventType = AgentEventType.Interacting,
+                Status = "Job started, waiting for agent response...",
+                Timestamp = DateTime.UtcNow
+            }, CancellationToken.None).ConfigureAwait(false);
+
             var blogEntry = await scopedBlogAgent.CreateBlogPostStreamedAsync(topic, audience, writingStyle, eventBus, CancellationToken.None)
                 .ConfigureAwait(false);
+
+            // A stream that completes without ever throwing but produces no text is not
+            // a successful generation - without this guard it would be stored via
+            // SetResult and reported to the client as a 200 OK success.
+            if (string.IsNullOrWhiteSpace(blogEntry.Content))
+            {
+                const string errorMessage = "Blog generation completed but produced no content";
+                logger.LogWarning("Blog generation job {JobId} completed with empty content", jobId);
+                resultStore.SetError(jobId, errorMessage);
+
+                await eventBus.PublishAsync(new AgentStatusEvent
+                {
+                    EventType = AgentEventType.Error,
+                    Status = "Blog generation failed",
+                    Error = new ErrorData
+                    {
+                        ErrorType = "EmptyContent",
+                        Message = errorMessage,
+                        Retryable = true
+                    }
+                }, CancellationToken.None).ConfigureAwait(false);
+
+                return;
+            }
 
             blogEntry.Citations = scopedCitationExtractor.ExtractCitations(blogEntry.Content).Citations;
             blogEntry.References = scopedCitationExtractor.ExtractCitations(blogEntry.Content).References;
