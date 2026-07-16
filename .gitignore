@@ -8,3 +8,4 @@
 # Azurite data
 azurite-data/
 src/server/insight.webapi/insight.webapi/azurite-data/
+/graphify-out/*
