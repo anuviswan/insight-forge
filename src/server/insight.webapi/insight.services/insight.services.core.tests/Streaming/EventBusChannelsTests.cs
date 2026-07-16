@@ -184,4 +184,32 @@ public class EventBusChannelsTests
         Assert.IsTrue(events.Count >= 2, $"Expected at least 2 events, got {events.Count}");
         Assert.IsTrue(events.Any(e => e.InteractionId == "3"), "Event 3 should be present");
     }
+
+    [TestMethod]
+    public async Task SubscribeAsync_WhenEventWasPublishedBeforeSubscribing_ShouldReplayLastEvent()
+    {
+        // A subscriber (the SSE client) always connects after the job that publishes
+        // to this bus has already started, since it only learns the jobId - and can
+        // only open its connection - once the job-start request returns. Without a
+        // replay of the last event, that subscriber would see nothing until the next
+        // event happens to be published.
+        var bus = new EventBusChannels(10);
+        var @event = new AgentStatusEvent
+        {
+            InteractionId = "test-1",
+            EventType = AgentEventType.Interacting,
+            Status = "Job started"
+        };
+
+        await bus.PublishAsync(@event);
+
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        await foreach (var evt in bus.SubscribeAsync(cts.Token))
+        {
+            Assert.AreEqual("Job started", evt.Status);
+            return;
+        }
+
+        Assert.Fail("Expected the late subscriber to receive the replayed last event");
+    }
 }

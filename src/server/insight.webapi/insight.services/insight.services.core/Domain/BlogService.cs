@@ -54,6 +54,17 @@ public class BlogService(
 
         try
         {
+            // Published before the agent call so the client sees an immediate status
+            // update. The Gemini stream itself can take tens of seconds to produce its
+            // first recognizable event (or, for some agent responses, none at all until
+            // the very end), which would otherwise leave the UI showing nothing.
+            await eventBus.PublishAsync(new AgentStatusEvent
+            {
+                EventType = AgentEventType.Interacting,
+                Status = "Job started, waiting for agent response...",
+                Timestamp = DateTime.UtcNow
+            }, CancellationToken.None).ConfigureAwait(false);
+
             var blogEntry = await scopedBlogAgent.CreateBlogPostStreamedAsync(topic, audience, writingStyle, eventBus, CancellationToken.None)
                 .ConfigureAwait(false);
 
