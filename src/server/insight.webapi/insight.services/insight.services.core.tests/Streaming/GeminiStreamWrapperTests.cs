@@ -207,6 +207,58 @@ public class GeminiStreamWrapperTests
         Assert.AreEqual("google_search", evt.Step.FunctionCalls[0].Name);
     }
 
+    [TestMethod]
+    public async Task StreamAsync_WithCompleteNonIncrementalResponse_ShouldSynthesizeEquivalentEvents()
+    {
+        // Some agent responses aren't delivered incrementally: the whole completed
+        // interaction arrives as a single line matching the non-streaming response
+        // shape (id/status/steps) rather than a sequence of event_type-tagged frames.
+        var streamContent = """
+            {"id": "interaction-1", "status": "completed", "steps": [{"id": "s0", "type": "function_call", "name": "google_search"}, {"id": "s1", "type": "model_output", "content": [{"type": "text", "text": "Hello World"}]}], "usage": {"total_tokens": 100, "total_input_tokens": 60, "total_output_tokens": 40}}
+            """;
+
+        var handler = new MockHttpMessageHandler(streamContent);
+        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://api.gemini.test/") };
+        var wrapper = new GeminiStreamWrapper(httpClient, _loggerMock.Object);
+
+        var events = new List<GeminiStreamEvent>();
+        await foreach (var evt in wrapper.StreamAsync("agent-123", "input"))
+        {
+            events.Add(evt);
+        }
+
+        Assert.AreEqual("interaction.created", events[0].EventType);
+        Assert.AreEqual("interaction.completed", events[^1].EventType);
+        Assert.AreEqual(100, events[^1].Interaction!.Usage!.TotalTokens);
+
+        var modelOutputStop = events.Single(e =>
+            e.EventType == "step.stop" && e.Step?.Type == "model_output");
+        Assert.AreEqual("Hello World", modelOutputStop.Step!.Content!.Single().Text);
+
+        // The non-text step should produce no step.delta (nothing to accumulate).
+        Assert.IsFalse(events.Any(e => e.EventType == "step.delta" && e.Step?.Type == "function_call"));
+    }
+
+    [TestMethod]
+    public async Task StreamAsync_WithCompleteResponseButNoSteps_ShouldFallBackToWarning()
+    {
+        var streamContent = """
+            {"id": "interaction-1", "status": "completed"}
+            """;
+
+        var handler = new MockHttpMessageHandler(streamContent);
+        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://api.gemini.test/") };
+        var wrapper = new GeminiStreamWrapper(httpClient, _loggerMock.Object);
+
+        var events = new List<GeminiStreamEvent>();
+        await foreach (var evt in wrapper.StreamAsync("agent-123", "input"))
+        {
+            events.Add(evt);
+        }
+
+        Assert.AreEqual(0, events.Count);
+    }
+
     // Mock HttpMessageHandler for testing
     private class MockHttpMessageHandler : HttpMessageHandler
     {
