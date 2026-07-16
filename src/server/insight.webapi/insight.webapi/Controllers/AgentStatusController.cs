@@ -11,6 +11,8 @@ namespace Insight.WebApi.Controllers;
 [Route("api/agent")]
 public class AgentStatusController : ControllerBase
 {
+    private static readonly JsonSerializerOptions SseJsonOptions = new(JsonSerializerDefaults.Web);
+
     private readonly IJobAgentService _jobAgentService;
     private readonly IStreamingResilienceMetrics _resilienceMetrics;
     private readonly ILogger<AgentStatusController> _logger;
@@ -128,7 +130,7 @@ public class AgentStatusController : ControllerBase
     /// </summary>
     private static async Task SendSseEvent(HttpResponse response, object data, CancellationToken cancellationToken)
     {
-        var json = JsonSerializer.Serialize(data);
+        var json = JsonSerializer.Serialize(data, SseJsonOptions);
         await response.WriteAsync($"data: {json}\n\n", cancellationToken);
         await response.Body.FlushAsync(cancellationToken);
     }
